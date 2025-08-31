@@ -13,12 +13,12 @@ import platform
 def load_mcp_config():
     """載入MCP設定檔"""
     # 固定設定檔路徑
-    config_path = Path("/Users/ben/code/mcp_sync/mcp_config.json")
+    config_path = Path("/Users/ben/code/mcp_rule_config/mcp_config.json")
     
     # Ubuntu 支援
     if platform.system().lower() == "linux":
         home = Path.home()
-        config_path = home / "code/mcp_sync/mcp_config.json"
+        config_path = home / "code/mcp_rule_config/mcp_config.json"
     
     if not config_path.exists():
         print(f"錯誤：找不到設定檔 {config_path}")
