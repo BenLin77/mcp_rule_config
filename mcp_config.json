@@ -66,6 +66,11 @@
       ],
       "env": {},
       "disabled": false
+    },
+    "pinescript-syntax-checker": {
+      "command": "uvx",
+      "args": ["pinescript-syntax-checker"]
     }
   }
 }
+
