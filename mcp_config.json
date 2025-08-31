@@ -68,6 +68,14 @@
         "--username root",
         "--password ${SSH_PASSWORD}"
       ]
+    },
+    "git": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-git"
+      ],
+      "env": {},
+      "disabled": false
     }
   }
 }
