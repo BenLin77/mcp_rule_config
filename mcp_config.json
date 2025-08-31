@@ -14,14 +14,14 @@
       ],
       "env": {}
     },
-    "notion-mcp-server": {
+    "notionApi": {
       "command": "npx",
       "args": [
         "-y",
         "@notionhq/notion-mcp-server"
       ],
       "env": {
-        "OPENAPI_MCP_HEADERS": "{\"Authorization\": \"Bearer ${NOTION_TOKEN}\", \"Notion-Version\": \"2022-06-28\"}"
+        "NOTION_TOKEN": "${NOTION_TOKEN}"
       }
     },
     "context7": {
@@ -30,16 +30,6 @@
         "-y",
         "@upstash/context7-mcp@latest"
       ]
-    },
-    "memory": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-memory"
-      ],
-      "env": {
-        "MEMORY_FILE_PATH": "/home/ben/Documents/mcp-memory"
-      }
     },
     "google-maps": {
       "command": "npx",
