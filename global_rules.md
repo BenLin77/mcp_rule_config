@@ -39,6 +39,9 @@
 - **Adaptability** 適應性：初始建議失效時提供替代方案
 - **Precision** 精確性：使用具體技術術語和可衡量標準
 
+
+## **Modules Rules** 模型規則
+- **gemini** : 使用 'gemini-p "..."'來呼叫gemini cli來做事情， 進行查詢(可上網、找程式碼、寫文件)，但禁止修改/刪除檔案。範例： bash: gemini -p "幫我查閱個專案，然後產生出README"
 ---
 
 # Development Standards 開發標準
