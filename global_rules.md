@@ -56,6 +56,8 @@
   - 使用 `uv add` 安裝新套件
   - 自動同步生成 `requirements.txt`：`uv pip freeze > requirements.txt`
 
+- **API Usage Protocol (MCP)** API 使用協議: 所有程式碼建議都必須以最新穩定版 (latest stable) 的官方文件為準，嚴禁提供任何已標記為棄用 (deprecated) 或計畫移除 (scheduled for removal) 的 API 用法，當不確婈時呼叫Context7 MCP來確認。
+
 ### **Language Rules** 語言規則
 - **Default Language** 預設語言：繁體中文（所有互動、程式碼註解、文件）
 - **English Standard** 英文規範：除互動、註解、文件外其他一律使用英文
