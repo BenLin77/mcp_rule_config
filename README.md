@@ -20,6 +20,14 @@ ln -s /path/to/this/repo/global_rules.md ./global_rules.md
 
 This allows you to reference the global rules directly in your project without copying the file.
 
+To import `mcp_config.json` into Claude code, run the sync script:
+
+```bash
+python sync_mcp.py
+```
+
+This will synchronize your MCP configuration with Claude code.
+
 ## Environment Variables
 
 Set these variables in your shell or a local `.env` (do not commit `.env`):
