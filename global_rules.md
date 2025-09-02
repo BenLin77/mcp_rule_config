@@ -48,10 +48,10 @@
   - **行為**: 提供地理資訊或路線規劃。
   - **MCP**: 呼叫 `google-maps` 獲取地理數據。
 
-- **策略羅盤模式 (Strategic Compass Mode)**:
-  - **觸發關鍵字**: `策略羅盤`、`大方向`、`roadmap`、`戰略`、`高層次規劃`
-  - **行為**: 從高層次策略角度分析，提供長期規劃建議。
-  - **MCP**: 呼叫 `mcp-compass` 進行策略分析。
+- **mcp 推薦模式 (Strategic Compass Mode)**:
+  - **觸發關鍵字**: `推薦的mcp`、`尋找mcp`
+  - **行為**: 依照需要做的任務，推薦不同的mcp。
+  - **MCP**: 呼叫 `mcp-compass` 進行MCP推薦來完成任務。
 
 - **Notion API 模式 (Notion API Mode)**:
   - **觸發關鍵字**: `notion`、`筆記`
