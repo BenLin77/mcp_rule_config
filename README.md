@@ -2,10 +2,23 @@
 
 This repository stores a backup of your Windsurf MCP configuration files.
 
+> **⚠️ IMPORTANT: Currently only supports Claude code and Windsurf** ⚠️
+
 ## Files
 
 - `global_rules.md`: Your global customization rules and development standards.
 - `mcp_config.json`: MCP servers configuration. Sensitive values are referenced via environment variables to avoid committing secrets.
+
+## Usage
+
+For convenient access to `global_rules.md`, create a symbolic link (soft link) in your project:
+
+```bash
+# Execute in your project root directory
+ln -s /path/to/this/repo/global_rules.md ./global_rules.md
+```
+
+This allows you to reference the global rules directly in your project without copying the file.
 
 ## Environment Variables
 
