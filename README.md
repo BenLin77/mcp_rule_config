@@ -1,42 +1,50 @@
 # mcp_rule_config
 
-This repository stores a backup of your Windsurf MCP configuration files.
+Centralized repository to manage and sync your MCP configuration and global rules. It supports:
 
-> **⚠️ IMPORTANT: Currently only supports Claude code and Windsurf** ⚠️
+- Cursor
+- Windsurf
+- Claude (Claude CLI MCP configuration)
 
 ## Files
 
-- `global_rules.md`: Your global customization rules and development standards.
-- `mcp_config.json`: MCP servers configuration. Sensitive values are referenced via environment variables to avoid committing secrets.
+- `global_rules.md`: Your global rules and development standards.
+- `mcp_config.json`: MCP servers configuration (secrets are referenced via environment variables).
+- `sync_mcp.py`: Sync script that writes files to the appropriate locations under your Home directory.
+
+## Sync Targets
+
+- Cursor: `~/.cursor/AGENTS.md`, `~/.cursor/mcp.json`
+- Windsurf: `~/.codeium/windsurf/memories/global_rules.md`
+- Claude: `~/.claude/CLAUDE.md` (and registers MCP servers to Claude CLI from `mcp_config.json`)
 
 ## Usage
 
-For convenient access to `global_rules.md`, create a symbolic link (soft link) in your project:
+Recommended to run with uv (Python is also fine):
 
 ```bash
-# Execute in your project root directory
-ln -s /path/to/this/repo/global_rules.md ./global_rules.md
+# Sync files to Cursor/Windsurf/Claude and update Claude CLI MCP servers
+uv run sync_mcp.py
+
+# or
+python3 sync_mcp.py
 ```
 
-This allows you to reference the global rules directly in your project without copying the file.
+What the script does:
 
-To import `mcp_config.json` into Claude code, run the sync script:
-
-```bash
-python sync_mcp.py
-```
-
-This will synchronize your MCP configuration with Claude code.
+1. Copies `global_rules.md` to all targets (Cursor/Windsurf/Claude).
+2. Generates Cursor's `~/.cursor/mcp.json` from your local `mcp_config.json`.
+3. Registers MCP servers to Claude CLI (user scope) via `claude mcp add` using `mcp_config.json`.
 
 ## Environment Variables
 
-Set these variables in your shell or a local `.env` (do not commit `.env`):
+Set these in your shell or a local `.env` (do not commit `.env`):
 
-- `NOTION_TOKEN`: Notion API token (used in `OPENAPI_MCP_HEADERS`).
-- `GOOGLE_MAPS_API_KEY`: Google Maps API key for the `google-maps` MCP server.
-- `SSH_PASSWORD`: Password for the `ssh-mcp-server` command argument.
+- `NOTION_TOKEN`: Notion API token.
+- `GOOGLE_MAPS_API_KEY`: Google Maps API key (for `google-maps` MCP server).
+- `SSH_PASSWORD`: Used by `ssh-mcp-server` arguments.
 
-Example (shell):
+Example:
 
 ```bash
 export NOTION_TOKEN=your_notion_token
@@ -46,5 +54,5 @@ export SSH_PASSWORD=your_ssh_password
 
 ## Notes
 
-- Secrets are not stored in this repo. They are referenced as `${VAR_NAME}` placeholders inside `mcp_config.json`.
-- If additional secrets appear in your configs later, convert them to environment variables before committing.
+- Secrets are not stored in this repo; they are referenced as `${VAR_NAME}` placeholders in `mcp_config.json`.
+- If more secrets are added later, switch them to environment variables before committing.

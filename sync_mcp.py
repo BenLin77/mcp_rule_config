@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Automatically sync MCP config to Claude CLI and global rules to specified paths
-Default config path: /Users/ben/code/mcp_sync/mcp_config.json
+Automatically sync MCP config to Claude CLI and global rules to Cursor paths
+Default config path resolved relative to this script or $HOME/code/mcp_rule_config/mcp_config.json
 
 執行方式：
 - 建議使用 uv run sync_mcp.py
@@ -99,7 +99,7 @@ def add_mcp_server(name, config):
 
 
 def sync_global_rules():
-    """Sync global_rules.md to specified paths for Mac and Ubuntu"""
+    """Sync global_rules.md to Cursor, Windsurf, and Claude paths under HOME"""
     # Source file path
     script_dir = Path(__file__).parent.resolve()
     source_file = script_dir / "global_rules.md"
@@ -108,23 +108,13 @@ def sync_global_rules():
         print(f"Error: Source file not found: {source_file}")
         return False
     
-    # Target paths based on OS
+    # Target paths: Cursor, Windsurf, Claude
     home = Path.home()
-    target_paths = []
-    
-    if platform.system().lower() == "darwin":  # Mac
-        target_paths = [
-            home / ".codeium/windsurf/memories/global_rules.md",
-            home / ".claude/CLAUDE.md"
-        ]
-    elif platform.system().lower() == "linux":  # Ubuntu
-        target_paths = [
-            home / ".codeium/windsurf/memories/global_rules.md",
-            home / ".claude/CLAUDE.md"
-        ]
-    else:
-        print(f"Unsupported OS: {platform.system()}")
-        return False
+    target_paths = [
+        home / ".cursor/AGENTS.md",  # Cursor
+        home / ".codeium/windsurf/memories/global_rules.md",  # Windsurf
+        home / ".claude/CLAUDE.md",  # Claude
+    ]
     
     # Create directories if they don't exist and copy the file
     success_count = 0
@@ -142,6 +132,24 @@ def sync_global_rules():
     
     print(f"\nGlobal rules sync complete! Success: {success_count}/{len(target_paths)}")
     return success_count > 0
+
+
+def sync_cursor_mcp_json():
+    """Sync local mcp_config.json to Cursor's mcp.json under HOME"""
+    home = Path.home()
+    target_path = home / ".cursor/mcp.json"
+    try:
+        config = load_mcp_config()
+        # Ensure parent exists
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        # Write JSON with UTF-8 and pretty formatting
+        with open(target_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        print(f"✓ Successfully wrote Cursor MCP config: {target_path}")
+        return True
+    except Exception as e:
+        print(f"✗ Failed to write Cursor MCP config to {target_path}: {e}")
+        return False
 
 
 def sync_mcp_config():
@@ -174,8 +182,12 @@ if __name__ == "__main__":
         print("Syncing global rules...")
         sync_global_rules()
         
-        # Then sync MCP config
-        print("\nSyncing MCP configuration...")
+        # Sync Cursor MCP JSON
+        print("\nSyncing Cursor MCP JSON...")
+        sync_cursor_mcp_json()
+
+        # Then sync MCP config to Claude CLI
+        print("\nSyncing MCP configuration to Claude CLI...")
         sync_mcp_config()
     except KeyboardInterrupt:
         print("\nUser interrupted execution")
