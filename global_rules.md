@@ -73,8 +73,10 @@
 ### 3.1 通用開發標準
 - **環境與工具**:
   - **虛擬環境**: 檢查 `.venv`，不存在則以 `uv init` 建立。
-  - **執行**: Python 程式碼以 `uv run` 執行。
+  - **執行**: Python 程式碼一律以 `uv run` 執行，而不是python。
+  - **套件管理**: Python 套件一律以 `uv add` 安裝，而不是pip。
   - **依賴管理**: 使用 `uv add` 安裝套件，同步生成 `requirements.txt`（`uv pip freeze > requirements.txt`）。
+  - **README**:當程式超過100行時，幫我自動產生README
 - **語言與命名規範**:
   - **預設語言**: 對話、註解、文件使用繁體中文。
   - **程式碼命名**: 變數、函式、類別、檔案名稱使用英文。
