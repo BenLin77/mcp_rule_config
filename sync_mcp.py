@@ -2,10 +2,6 @@
 """
 Automatically sync MCP config to Claude CLI and global rules to Cursor paths
 Default config path resolved relative to this script or $HOME/code/mcp_rule_config/mcp_config.json
-
-執行方式：
-- 建議使用 uv run sync_mcp.py
-- 或使用 python3 sync_mcp.py
 """
 import json
 import subprocess
@@ -14,6 +10,7 @@ import shutil
 from pathlib import Path
 import platform
 import os
+import re
 
 
 def load_mcp_config():
@@ -34,6 +31,57 @@ def load_mcp_config():
     print(f"Loading config: {config_path}")
     with open(config_path, 'r', encoding='utf-8') as f:
         return json.load(f)
+
+
+def _resolve_string_env(s: str, env: dict) -> str:
+    """Replace ${VAR} placeholders in a string using provided env.
+
+    - 僅替換 ${VAR} 型式；若變數不存在，保留原字串並印出警告。
+    - 也支援 $VAR 透過 os.path.expandvars，但以 ${} 為主。
+    """
+    # 先找出所有 ${VAR}
+    pattern = re.compile(r"\$\{([^}]+)\}")
+
+    def repl(match: re.Match) -> str:
+        var = match.group(1)
+        if var in env and env[var] is not None:
+            return str(env[var])
+        else:
+            print(f"Warning: Environment variable '{var}' not set; leaving placeholder as-is")
+            return match.group(0)
+
+    replaced = pattern.sub(repl, s)
+    # 額外處理 $VAR（若存在）
+    replaced = os.path.expandvars(replaced)
+    return replaced
+
+
+def resolve_env_placeholders(obj, env: dict = None):
+    """Recursively resolve ${VAR} placeholders in a JSON-like object.
+
+    - 支援 dict / list / str；其他型別直接回傳。
+    - 預設使用當前 process 的環境變數。
+    """
+    if env is None:
+        env = os.environ
+
+    if isinstance(obj, dict):
+        return {k: resolve_env_placeholders(v, env) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [resolve_env_placeholders(v, env) for v in obj]
+    elif isinstance(obj, str):
+        return _resolve_string_env(obj, env)
+    else:
+        return obj
+
+
+def get_resolved_mcp_config():
+    """Load and resolve environment placeholders in MCP config.
+
+    回傳一份已將 ${VAR} 替換為實際環境值的配置。
+    """
+    raw = load_mcp_config()
+    return resolve_env_placeholders(raw)
 
 
 def get_existing_servers():
@@ -139,7 +187,8 @@ def sync_cursor_mcp_json():
     home = Path.home()
     target_path = home / ".cursor/mcp.json"
     try:
-        config = load_mcp_config()
+        # 讀取並展開環境變數
+        config = get_resolved_mcp_config()
         # Ensure parent exists
         target_path.parent.mkdir(parents=True, exist_ok=True)
         # Write JSON with UTF-8 and pretty formatting
@@ -157,7 +206,8 @@ def sync_windsurf_mcp_json():
     home = Path.home()
     target_path = home / ".codeium/windsurf/mcp_config.json"
     try:
-        config = load_mcp_config()
+        # 讀取並展開環境變數
+        config = get_resolved_mcp_config()
         # Ensure parent exists
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with open(target_path, "w", encoding="utf-8") as f:
@@ -171,7 +221,8 @@ def sync_windsurf_mcp_json():
 
 def sync_mcp_config():
     """Sync MCP configuration"""
-    config = load_mcp_config()
+    # 使用展開後的配置，確保 args/command 中的變數也被處理
+    config = get_resolved_mcp_config()
     
     servers = config.get('mcpServers', {})
     success_count = 0
