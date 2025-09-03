@@ -152,6 +152,23 @@ def sync_cursor_mcp_json():
         return False
 
 
+def sync_windsurf_mcp_json():
+    """Sync local mcp_config.json to Windsurf's mcp_config.json under HOME"""
+    home = Path.home()
+    target_path = home / ".codeium/windsurf/mcp_config.json"
+    try:
+        config = load_mcp_config()
+        # Ensure parent exists
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(target_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        print(f"✓ Successfully wrote Windsurf MCP config: {target_path}")
+        return True
+    except Exception as e:
+        print(f"✗ Failed to write Windsurf MCP config to {target_path}: {e}")
+        return False
+
+
 def sync_mcp_config():
     """Sync MCP configuration"""
     config = load_mcp_config()
@@ -185,6 +202,10 @@ if __name__ == "__main__":
         # Sync Cursor MCP JSON
         print("\nSyncing Cursor MCP JSON...")
         sync_cursor_mcp_json()
+
+        # Sync Windsurf MCP JSON
+        print("\nSyncing Windsurf MCP JSON...")
+        sync_windsurf_mcp_json()
 
         # Then sync MCP config to Claude CLI
         print("\nSyncing MCP configuration to Claude CLI...")

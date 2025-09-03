@@ -15,7 +15,7 @@ Centralized repository to manage and sync your MCP configuration and global rule
 ## Sync Targets
 
 - Cursor: `~/.cursor/AGENTS.md`, `~/.cursor/mcp.json`
-- Windsurf: `~/.codeium/windsurf/memories/global_rules.md`
+- Windsurf: `~/.codeium/windsurf/memories/global_rules.md`, `~/.codeium/windsurf/mcp_config.json`
 - Claude: `~/.claude/CLAUDE.md` (and registers MCP servers to Claude CLI from `mcp_config.json`)
 
 ## Usage
@@ -34,7 +34,8 @@ What the script does:
 
 1. Copies `global_rules.md` to all targets (Cursor/Windsurf/Claude).
 2. Generates Cursor's `~/.cursor/mcp.json` from your local `mcp_config.json`.
-3. Registers MCP servers to Claude CLI (user scope) via `claude mcp add` using `mcp_config.json`.
+3. Generates Windsurf's `~/.codeium/windsurf/mcp_config.json` from your local `mcp_config.json`.
+4. Registers MCP servers to Claude CLI (user scope) via `claude mcp add` using `mcp_config.json`.
 
 ## Environment Variables
 
