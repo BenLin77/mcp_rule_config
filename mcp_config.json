@@ -53,10 +53,14 @@
       "args": [
         "-y",
         "@fangjunjie/ssh-mcp-server",
-        "--host", "192.168.1.1",
-        "--port", "22",
-        "--username", "root",
-        "--password", "${SSH_PASSWORD}"
+        "--host",
+        "192.168.1.1",
+        "--port",
+        "22",
+        "--username",
+        "root",
+        "--password",
+        "${SSH_PASSWORD}"
       ]
     },
     "git": {
@@ -69,7 +73,9 @@
     },
     "pinescript-syntax-checker": {
       "command": "uvx",
-      "args": ["pinescript-syntax-checker"]
+      "args": [
+        "pinescript-syntax-checker"
+      ]
     },
     "brave-search": {
       "command": "npx",
@@ -83,4 +89,3 @@
     }
   }
 }
-

@@ -1,269 +1,197 @@
 #!/usr/bin/env python3
 """
-Automatically sync MCP config to Claude CLI and global rules to Cursor paths
-Default config path resolved relative to this script or $HOME/code/mcp_rule_config/mcp_config.json
+簡潔的 MCP 配置同步工具
+1. 複製 mcp_config.json 為臨時檔案
+2. 替換環境變數
+3. 同步到 Windsurf, Cursor, Claude Code
+4. 刪除臨時檔案（避免 token 被推送到 github）
 """
 import json
+import os
+import shutil
 import subprocess
 import sys
-import shutil
 from pathlib import Path
-import platform
-import os
 import re
+import tempfile
 
 
-def load_mcp_config():
-    """Load MCP configuration file"""
-    # Use current script directory to find config file
-    script_dir = Path(__file__).parent.resolve()
-    config_path = script_dir / "mcp_config.json"
+def expand_variables(content: str) -> str:
+    """替換字串中的 ${VAR} 環境變數"""
+    pattern = re.compile(r'\$\{([^}]+)\}')
     
-    # Ubuntu/Linux support - fallback to traditional path if needed
-    if not config_path.exists() and platform.system().lower() == "linux":
-        home = Path.home()
-        config_path = home / "code/mcp_rule_config/mcp_config.json"
+    def replace_var(match):
+        var_name = match.group(1)
+        value = os.environ.get(var_name)
+        if value is None:
+            print(f"警告: 環境變數 '{var_name}' 未設置")
+            return match.group(0)
+        return value
+    
+    return pattern.sub(replace_var, content)
+
+
+def process_config():
+    """處理配置檔案：複製 → 替換變數 → 返回處理後的配置和臨時檔案路徑"""
+    config_path = Path(__file__).parent / "mcp_config.json"
     
     if not config_path.exists():
-        print(f"Error: Config file not found {config_path}")
+        print(f"錯誤: 找不到配置檔案 {config_path}")
         sys.exit(1)
-        
-    print(f"Loading config: {config_path}")
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
-
-
-def _resolve_string_env(s: str, env: dict) -> str:
-    """Replace ${VAR} placeholders in a string using provided env.
-
-    - 僅替換 ${VAR} 型式；若變數不存在，保留原字串並印出警告。
-    - 也支援 $VAR 透過 os.path.expandvars，但以 ${} 為主。
-    """
-    # 先找出所有 ${VAR}
-    pattern = re.compile(r"\$\{([^}]+)\}")
-
-    def repl(match: re.Match) -> str:
-        var = match.group(1)
-        if var in env and env[var] is not None:
-            return str(env[var])
-        else:
-            print(f"Warning: Environment variable '{var}' not set; leaving placeholder as-is")
-            return match.group(0)
-
-    replaced = pattern.sub(repl, s)
-    # 額外處理 $VAR（若存在）
-    replaced = os.path.expandvars(replaced)
-    return replaced
-
-
-def resolve_env_placeholders(obj, env: dict = None):
-    """Recursively resolve ${VAR} placeholders in a JSON-like object.
-
-    - 支援 dict / list / str；其他型別直接回傳。
-    - 預設使用當前 process 的環境變數。
-    """
-    if env is None:
-        env = os.environ
-
-    if isinstance(obj, dict):
-        return {k: resolve_env_placeholders(v, env) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [resolve_env_placeholders(v, env) for v in obj]
-    elif isinstance(obj, str):
-        return _resolve_string_env(obj, env)
-    else:
-        return obj
-
-
-def get_resolved_mcp_config():
-    """Load and resolve environment placeholders in MCP config.
-
-    回傳一份已將 ${VAR} 替換為實際環境值的配置。
-    """
-    raw = load_mcp_config()
-    return resolve_env_placeholders(raw)
-
-
-def get_existing_servers():
-    """Get existing MCP server list"""
-    existing = set()
+    
+    # 創建臨時檔案
+    temp_file = tempfile.NamedTemporaryFile(mode='w+', suffix='_mcp_config.json', 
+                                          delete=False, encoding='utf-8')
+    temp_path = Path(temp_file.name)
+    
     try:
-        result = subprocess.run(['claude', 'mcp', 'list'], 
-                              capture_output=True, text=True, check=False)
+        # 讀取原始配置
+        with open(config_path, 'r', encoding='utf-8') as f:
+            raw_content = f.read()
         
-        # Parse output to find server names
-        lines = result.stdout.strip().split('\n')
-        for line in lines:
-            # Skip empty lines and header lines
-            if not line or 'Checking MCP server health' in line or line.startswith(' ') or not ':' in line:
-                continue
-            
-            # Extract server name (format: server_name: command - status)
-            if ': ' in line and (' - ' in line):
-                server_name = line.split(':')[0].strip()
-                existing.add(server_name)
-                print(f"Found existing server: {server_name}")
-                
-    except subprocess.CalledProcessError as e:
-        print(f"Warning: Unable to fetch existing settings - {e}")
-    
-    print(f"Existing server count: {len(existing)}")
-    return existing
+        # 替換環境變數
+        processed_content = expand_variables(raw_content)
+        
+        # 寫入臨時檔案
+        temp_file.write(processed_content)
+        temp_file.close()
+        
+        # 解析為 JSON 物件
+        config = json.loads(processed_content)
+        
+        print(f"已創建臨時配置檔案: {temp_path}")
+        return config, temp_path
+        
+    except json.JSONDecodeError as e:
+        temp_file.close()
+        temp_path.unlink(missing_ok=True)
+        print(f"錯誤: JSON 解析失敗 - {e}")
+        sys.exit(1)
+    except Exception as e:
+        temp_file.close()
+        temp_path.unlink(missing_ok=True)
+        print(f"錯誤: 處理配置檔案失敗 - {e}")
+        sys.exit(1)
 
 
-def add_mcp_server(name, config):
-    """Add a single MCP server to the global settings"""
-    try:
-        cmd = ['claude', 'mcp', 'add', '--scope', 'user', name, config['command']]  # write to user scope
-        args = config.get('args', [])
-        
-        # Filter and process arguments
-        for arg in args:
-            if arg == '-y':  # skip -y argument
-                continue
-            cmd.append(arg)
-        
-        print(f"Adding MCP server to global: {name}")
-        
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(f"✓ Successfully added to global: {name}")
-        
-        # If env vars are required, show a reminder
-        if 'env' in config and config['env']:
-            print(f"Note: {name} requires environment variables: {list(config['env'].keys())}")
-            
-        return True
-        
-    except subprocess.CalledProcessError as e:
-        error_msg = e.stderr.strip() if e.stderr else str(e)
-        
-        # If it's an 'already exists' error, treat as success
-        if "already exists" in error_msg:
-            print(f"✓ {name} already exists in global settings")
-            return True
-            
-        print(f"✗ Failed to add to global {name}: {error_msg}")
-        return False
-
-
-def sync_global_rules():
-    """Sync global_rules.md to Cursor, Windsurf, and Claude paths under HOME"""
-    # Source file path
-    script_dir = Path(__file__).parent.resolve()
-    source_file = script_dir / "global_rules.md"
-    
-    if not source_file.exists():
-        print(f"Error: Source file not found: {source_file}")
-        return False
-    
-    # Target paths: Cursor, Windsurf, Claude
+def sync_to_editors(config_data: dict, temp_path: Path):
+    """同步配置到各編輯器（使用臨時檔案）"""
     home = Path.home()
-    target_paths = [
-        home / ".cursor/AGENTS.md",  # Cursor
-        home / ".codeium/windsurf/memories/global_rules.md",  # Windsurf
-        home / ".claude/CLAUDE.md",  # Claude
-    ]
     
-    # Create directories if they don't exist and copy the file
+    # 目標路徑配置
+    targets = {
+        "Windsurf": home / ".codeium/windsurf/mcp_config.json",
+        "Cursor": home / ".cursor/mcp.json"
+    }
+    
     success_count = 0
-    for target_path in target_paths:
+    
+    # 複製臨時檔案到各編輯器
+    for editor, target_path in targets.items():
         try:
-            # Create parent directories if they don't exist
             target_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Copy the file
-            shutil.copy2(source_file, target_path)
-            print(f"✓ Successfully copied to: {target_path}")
+            shutil.copy2(temp_path, target_path)
+            print(f"✓ {editor}: {target_path}")
             success_count += 1
         except Exception as e:
-            print(f"✗ Failed to copy to {target_path}: {e}")
+            print(f"✗ {editor}: {e}")
     
-    print(f"\nGlobal rules sync complete! Success: {success_count}/{len(target_paths)}")
-    return success_count > 0
-
-
-def sync_cursor_mcp_json():
-    """Sync local mcp_config.json to Cursor's mcp.json under HOME"""
-    home = Path.home()
-    target_path = home / ".cursor/mcp.json"
+    # 同步到 Claude CLI
     try:
-        # 讀取並展開環境變數
-        config = get_resolved_mcp_config()
-        # Ensure parent exists
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        # Write JSON with UTF-8 and pretty formatting
-        with open(target_path, "w", encoding="utf-8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-        print(f"✓ Successfully wrote Cursor MCP config: {target_path}")
-        return True
+        sync_to_claude_cli(config_data)
+        success_count += 1
     except Exception as e:
-        print(f"✗ Failed to write Cursor MCP config to {target_path}: {e}")
-        return False
-
-
-def sync_windsurf_mcp_json():
-    """Sync local mcp_config.json to Windsurf's mcp_config.json under HOME"""
-    home = Path.home()
-    target_path = home / ".codeium/windsurf/mcp_config.json"
-    try:
-        # 讀取並展開環境變數
-        config = get_resolved_mcp_config()
-        # Ensure parent exists
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, "w", encoding="utf-8") as f:
-            json.dump(config, f, ensure_ascii=False, indent=2)
-        print(f"✓ Successfully wrote Windsurf MCP config: {target_path}")
-        return True
-    except Exception as e:
-        print(f"✗ Failed to write Windsurf MCP config to {target_path}: {e}")
-        return False
-
-
-def sync_mcp_config():
-    """Sync MCP configuration"""
-    # 使用展開後的配置，確保 args/command 中的變數也被處理
-    config = get_resolved_mcp_config()
+        print(f"✗ Claude CLI: {e}")
     
+    return success_count
+
+
+def sync_to_claude_cli(config: dict):
+    """同步到 Claude CLI"""
     servers = config.get('mcpServers', {})
-    success_count = 0
-    total_count = len(servers)
     
-    print(f"Starting forced sync of {total_count} MCP servers to Claude CLI global settings...")
+    print(f"正在同步 {len(servers)} 個 MCP 伺服器到 Claude CLI...")
     
     for name, server_config in servers.items():
         if server_config.get('disabled', False):
-            print(f"Skipping disabled server: {name}")
+            print(f"跳過已停用的伺服器: {name}")
             continue
+        
+        try:
+            cmd = ['claude', 'mcp', 'add', '--scope', 'user', name, server_config['command']]
             
-        if add_mcp_server(name, server_config):
-            success_count += 1
+            # 添加參數
+            args = server_config.get('args', [])
+            for arg in args:
+                if arg != '-y':  # 跳過 -y 參數
+                    cmd.append(arg)
+            
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(f"✓ Claude CLI 已添加: {name}")
+            
+        except subprocess.CalledProcessError as e:
+            if "already exists" in str(e.stderr):
+                print(f"✓ Claude CLI 已存在: {name}")
+            else:
+                print(f"✗ Claude CLI 失敗: {name} - {e.stderr}")
+
+
+def sync_global_rules():
+    """同步全域規則檔案"""
+    source = Path(__file__).parent / "global_rules.md"
+    if not source.exists():
+        print("跳過全域規則同步（檔案不存在）")
+        return
     
-    print(f"\nSync complete! Success: {success_count}/{total_count}")
+    targets = {
+        "Cursor": Path.home() / ".cursor/AGENTS.md",
+        "Windsurf": Path.home() / ".codeium/windsurf/memories/global_rules.md",
+        "Claude": Path.home() / ".claude/CLAUDE.md"
+    }
     
-    print("\nCurrent MCP servers:")
-    subprocess.run(['claude', 'mcp', 'list'], check=False)
+    for editor, target in targets.items():
+        try:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            print(f"✓ {editor} 全域規則: {target}")
+        except Exception as e:
+            print(f"✗ {editor} 全域規則失敗: {e}")
+
+
+def main():
+    """主要執行流程"""
+    temp_path = None
+    try:
+        print("開始同步 MCP 配置...")
+        
+        # 1. 處理配置檔案（創建臨時檔案）
+        config, temp_path = process_config()
+        print("✓ 配置檔案處理完成")
+        
+        # 2. 同步到編輯器
+        success_count = sync_to_editors(config, temp_path)
+        
+        # 3. 同步全域規則
+        sync_global_rules()
+        
+        print(f"\n同步完成！成功: {success_count}/3 個目標")
+        
+        # 4. 顯示 Claude CLI 狀態
+        print("\n目前 Claude CLI MCP 伺服器:")
+        subprocess.run(['claude', 'mcp', 'list'], check=False)
+        
+    except KeyboardInterrupt:
+        print("\n使用者中斷執行")
+        sys.exit(1)
+    except Exception as e:
+        print(f"執行錯誤: {e}")
+        sys.exit(1)
+    finally:
+        # 清理臨時檔案
+        if temp_path and temp_path.exists():
+            temp_path.unlink()
+            print(f"已刪除臨時檔案: {temp_path}")
 
 
 if __name__ == "__main__":
-    try:
-        # Sync global rules first
-        print("Syncing global rules...")
-        sync_global_rules()
-        
-        # Sync Cursor MCP JSON
-        print("\nSyncing Cursor MCP JSON...")
-        sync_cursor_mcp_json()
-
-        # Sync Windsurf MCP JSON
-        print("\nSyncing Windsurf MCP JSON...")
-        sync_windsurf_mcp_json()
-
-        # Then sync MCP config to Claude CLI
-        print("\nSyncing MCP configuration to Claude CLI...")
-        sync_mcp_config()
-    except KeyboardInterrupt:
-        print("\nUser interrupted execution")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Execution error: {e}")
-        sys.exit(1)
+    main()
