@@ -12,8 +12,13 @@ regexes = [
   '''REDACTED'''
 ]
 
-# Reduce false positives in common non-secret files
-files = [
-  "^README.md$",
-  "^global_rules.md$"
+# Reduce false positives in common non-secret files and folders
+paths = [
+  '^README\\.md$',
+  '^global_rules\\.md$',
+  '^node_modules/.*',
+  '^\\.venv/.*',
+  '^__pycache__/.*',
+  '^dist/.*',
+  '^build/.*'
 ]
