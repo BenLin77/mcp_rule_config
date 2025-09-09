@@ -1,0 +1,19 @@
+title = "local gitleaks config"
+
+[extend]
+# Use built-in gitleaks rules and add custom allowlist if needed.
+useDefault = true
+
+[allowlist]
+# Allow environment variable placeholders and obvious dummy values
+regexes = [
+  '''\$\{[A-Z0-9_]+\}''',
+  '''your_(api|token|password|secret)_?key?''',
+  '''REDACTED'''
+]
+
+# Reduce false positives in common non-secret files
+files = [
+  "^README.md$",
+  "^global_rules.md$"
+]
