@@ -111,6 +111,14 @@ def sync_to_claude_cli(config: dict):
     """同步到 Claude CLI"""
     servers = config.get('mcpServers', {})
 
+    # 在新增任何 MCP 之前，先清除 Claude CLI 中所有已註冊的 MCP
+    try:
+        removed = remove_all_claude_cli_mcps()
+        if removed:
+            print(f"已先行清除 Claude CLI 內既有 MCP: {', '.join(removed)}")
+    except Exception as e:
+        print(f"清除 Claude CLI 既有 MCP 時發生錯誤（將繼續嘗試新增）: {e}")
+
     print(f"正在同步 {len(servers)} 個 MCP 伺服器到 Claude CLI...")
 
     for name, server_config in servers.items():
@@ -205,6 +213,37 @@ def desired_mcp_names(config: dict) -> Set[str]:
             continue
         names.add(name)
     return names
+
+
+def remove_all_claude_cli_mcps() -> List[str]:
+    """移除 Claude Code（Claude CLI）中所有已註冊的 MCP。回傳被刪除的名稱清單。"""
+    existing = sorted(list_claude_cli_mcp_names())
+    if not existing:
+        print("Claude CLI 目前沒有已註冊的 MCP。")
+        return []
+
+    print(f"將清除 Claude CLI 內所有 MCP，共 {len(existing)} 個: {', '.join(existing)}")
+    removed: List[str] = []
+    for name in existing:
+        tried_cmds = [
+            ['claude', 'mcp', 'remove', '--scope', 'user', name],
+            ['claude', 'mcp', 'remove', name],
+        ]
+        ok = False
+        last_err = ''
+        for cmd in tried_cmds:
+            try:
+                subprocess.run(cmd, capture_output=True, text=True, check=True)
+                ok = True
+                break
+            except subprocess.CalledProcessError as e:
+                last_err = e.stderr or e.stdout or str(e)
+        if ok:
+            print(f"✓ 已移除: {name}")
+            removed.append(name)
+        else:
+            print(f"✗ 無法移除 {name}: {last_err}")
+    return removed
 
 
 def prune_claude_cli(config: dict) -> List[str]:
