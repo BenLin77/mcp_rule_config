@@ -22,14 +22,14 @@
   - **維持單一功能檔案** - 一個核心功能只由一個檔案負責，避免不同檔案間功能重複。
   - **禁止產生非程式碼檔案** - 嚴禁創建任何輸出檔 (如 `.csv`, `.png`) 或備份檔 (如 `_old.py`)。
   - **臨時檔案用後即刪** - 為測試而創建的任何檔案 (如 `test_*.py`)，在任務結束前必須刪除。
-  - **維持單一依賴性設定** - `pyproject.toml` 和 `requirements.txt` 只准存在一個，且只更新現有的那一個。
+
 
 ### 2.3 通用開發標準
   - **環境與工具**:
     - **虛擬環境**: 檢查 `.venv`，不存在則以 `uv init` 建立。
     - **執行**: Python 程式碼一律以 `uv run` 執行，而不是python。
     - **套件管理**: Python 套件一律以 `uv add` 安裝，而不是pip。
-    - **依賴管理**: 使用 `uv add` 安裝套件，同步生成 `requirements.txt`（`uv pip freeze > requirements.txt`）。
+    - **依賴管理**: 使用 `uv add` 安裝套件。
     - **README**:當程式超過100行時，幫我自動產生README
   - **語言與命名規範**:
     - **預設語言**: 對話、註解、文件使用繁體中文。
@@ -40,7 +40,7 @@
     - **文件**: 函式、類別、模組需有完整 Docstring，複雜邏輯需行內註解。
     - **效能**: 數據處理演算法效率不低於 O(n log n)，API 回應時間 < 200ms。
   - **安全與版本控制**:
-    - **機密管理**: 使用環境變數或 `.env` 管理 API Keys 和密碼，嚴禁提交至 Git。
+    - **機密管理**: 使用環境變數或 `.env` 管理 API Keys 和密碼，嚴禁提交至 Git，當git資料夾面有token資訊時提醒我。
     - **Git Ignore**: 主動創建.gitignore文件，包含 `.env`、`__pycache__/`、`.venv/`、`*.pyc`、系統暫存檔（如 `.DS_Store`）。
 
 ## 3. 互動模式 (Interaction Modes)
@@ -56,14 +56,14 @@
   - **MCP**: 無需額外 MCP。
 
 - **詳盡教學模式 (Tutorial Mode)**:
-  - **觸發關鍵字**: `教學`、`詳細說明`、`step-by-step`、`explain in detail`、`深入解釋`
+  - **觸發關鍵字**: `教學`、`詳細`、`step-by-step`、`explain in detail`、`深入解釋`
   - **行為**: 提供逐步解說、完整程式碼範例、詳細註解及深入解釋。
   - **MCP**: 若涉及程式碼生成，呼叫 `context7` 檢查上下文一致性與編譯後的 deprecated 警告。
 
 - **循序思考模式 (Sequential Thinking Mode)**:
   - **觸發關鍵字**: `分析`、`拆解`、`規劃`、`如何設計`、`制定策略`、`思考框架`
   - **行為**: 遵循「1. 需求分析 -> 2. 方案設計 -> 3. 實作規劃 -> 4. 檢討改進」流程結構化回應。
-  - **MCP**: 呼叫 `sequential-thinking` 輔助任務拆解。
+  - **MCP**: 呼叫 `sequential-thinking` mcp 輔助任務拆解。
 
 - **API 現代化模式 (API Modernization Mode)**:
   - **觸發關鍵字**: `現代化`、`更新API`、`重構舊碼`、`latest api`、`modernize`
