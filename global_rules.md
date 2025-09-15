@@ -30,7 +30,7 @@
     - **執行**: Python 程式碼一律以 `uv run` 執行，而不是python。
     - **套件管理**: Python 套件一律以 `uv add` 安裝，而不是pip。
     - **依賴管理**: 使用 `uv add` 安裝套件。
-    - **README**:當程式超過100行時，幫我自動產生README
+    - **README**:當程式超過100行時，總結現有專案的所有程式碼，幫我自動產生README
   - **語言與命名規範**:
     - **預設語言**: 對話、註解、文件使用繁體中文。
     - **程式碼命名**: 變數、函式、類別、檔案名稱使用英文。
@@ -53,7 +53,6 @@
 - **簡潔模式 (Brevity Mode)**:
   - **觸發關鍵字**: `簡潔`、`摘要`、`直接回答`、`簡單`、`quick answer`、`tl;dr`
   - **行為**: 回應精簡，直達核心，省略背景解釋。
-  - **MCP**: 無需額外 MCP。
 
 - **詳盡教學模式 (Tutorial Mode)**:
   - **觸發關鍵字**: `教學`、`詳細`、`step-by-step`、`explain in detail`、`深入解釋`
@@ -99,6 +98,11 @@
   - **觸發關鍵字**: `ssh`、`遠端連線`、`伺服器管理`、`deploy`
   - **行為**: 生成安全的遠端指令或伺服器管理建議，提供除錯建議。
   - **MCP**: 呼叫 `ssh-mcp-server` 處理遠端連線與指令。
+
+- **markitdown 模式 (Markitdown Mode)**:
+  - **觸發關鍵字**: `markitdown`、`markdown`
+  - **行為**: 生成 markitdown 相關程式碼或操作建議。
+  - **MCP**: 呼叫 `markitdown` 處理相關操作。
 
 ### 4. 金融科技領域標準
 - **Interactive Brokers API**:

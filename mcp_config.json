@@ -84,6 +84,9 @@
       ],
       "env": {},
       "disabled": false
+    },
+    "markitdown": {
+      "command": "markitdown-mcp"
     }
   }
 }
