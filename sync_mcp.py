@@ -127,13 +127,35 @@ def sync_to_claude_cli(config: dict):
             continue
 
         try:
-            cmd = ['claude', 'mcp', 'add', '--scope', 'user', name, server_config['command']]
+            cmd = ['claude', 'mcp', 'add', '--scope', 'user']
 
-            # 添加參數
-            args = server_config.get('args', [])
-            for arg in args:
-                if arg != '-y':  # 跳過 -y 參數
-                    cmd.append(arg)
+            # 支援 HTTP transport（如 Context7）
+            if 'serverUrl' in server_config:
+                server_url = server_config['serverUrl']
+                cmd.extend(['--transport', 'http', name, server_url])
+
+                # 處理 headers（字典形式），避免在日誌中洩漏敏感值
+                headers = server_config.get('headers') or {}
+                if isinstance(headers, dict):
+                    for k, v in headers.items():
+                        # 依官方格式 KEY: VALUE
+                        cmd.extend(['--header', f"{k}: {v}"])
+                elif isinstance(headers, list):
+                    # 若已是字串清單，直接附加
+                    for h in headers:
+                        cmd.extend(['--header', str(h)])
+            else:
+                # 預設為 command 型
+                command = server_config.get('command')
+                if not command:
+                    raise ValueError(f"伺服器 {name} 缺少必要欄位：'command' 或 'serverUrl'")
+                cmd.extend([name, command])
+
+                # 添加參數
+                args = server_config.get('args', [])
+                for arg in args:
+                    if arg != '-y':  # 跳過 -y 參數
+                        cmd.append(arg)
 
             subprocess.run(cmd, capture_output=True, text=True, check=True)
             print(f"✓ Claude CLI 已添加: {name}")
@@ -143,6 +165,9 @@ def sync_to_claude_cli(config: dict):
                 print(f"✓ Claude CLI 已存在: {name}")
             else:
                 print(f"✗ Claude CLI 失敗: {name} - {e.stderr}")
+        except Exception as e:
+            # 捕捉一般錯誤（例如 KeyError）
+            print(f"✗ Claude CLI 失敗: {name} - {e}")
 
 
 def _parse_claude_mcp_list_text(output: str) -> Set[str]:
