@@ -72,15 +72,6 @@
       "env": {},
       "disabled": false
     },
-    "puppeteer": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-puppeteer"
-      ],
-      "env": {},
-      "disabled": false
-    },
     "markitdown": {
       "command": "markitdown-mcp"
     }
