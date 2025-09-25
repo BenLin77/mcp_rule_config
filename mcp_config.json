@@ -8,12 +8,8 @@
       ],
       "env": {}
     },
-    "notion": {
-      "command": "npx",
-      "args": ["-y", "@suekou/mcp-notion-server"],
-      "env": {
-        "NOTION_API_TOKEN": "${NOTION_TOKEN}"
-      }
+    "Notion": {
+      "url": "https://mcp.notion.com/mcp"
     },
     "context7": {
       "serverUrl": "https://mcp.context7.com/mcp",
