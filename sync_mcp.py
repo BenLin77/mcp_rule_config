@@ -129,33 +129,36 @@ def sync_to_claude_cli(config: dict):
         try:
             cmd = ['claude', 'mcp', 'add', '--scope', 'user']
 
-            # 支援 HTTP transport（如 Context7）
-            if 'serverUrl' in server_config:
-                server_url = server_config['serverUrl']
+            # 1) 支援 HTTP transport：'serverUrl' 或 'url' 皆可
+            server_url = server_config.get('serverUrl') or server_config.get('url')
+            if server_url:
                 cmd.extend(['--transport', 'http', name, server_url])
 
                 # 處理 headers（字典形式），避免在日誌中洩漏敏感值
                 headers = server_config.get('headers') or {}
                 if isinstance(headers, dict):
                     for k, v in headers.items():
-                        # 依官方格式 KEY: VALUE
                         cmd.extend(['--header', f"{k}: {v}"])
                 elif isinstance(headers, list):
-                    # 若已是字串清單，直接附加
                     for h in headers:
                         cmd.extend(['--header', str(h)])
             else:
-                # 預設為 command 型
+                # 2) 若為 command 型，嘗試偵測 mcp-remote + URL 並轉為 HTTP transport
                 command = server_config.get('command')
-                if not command:
-                    raise ValueError(f"伺服器 {name} 缺少必要欄位：'command' 或 'serverUrl'")
-                cmd.extend([name, command])
-
-                # 添加參數
-                args = server_config.get('args', [])
-                for arg in args:
-                    if arg != '-y':  # 跳過 -y 參數
-                        cmd.append(arg)
+                args = server_config.get('args', []) or []
+                # 從 args 中找第一個 http(s) URL
+                url_in_args = next((a for a in args if isinstance(a, str) and a.startswith(('http://', 'https://'))), None)
+                uses_remote = any(isinstance(a, str) and 'mcp-remote' in a for a in args)
+                if command and uses_remote and url_in_args:
+                    print(f"偵測到 {name} 使用 mcp-remote，將改用 HTTP transport 以支援瀏覽器授權彈窗。")
+                    cmd.extend(['--transport', 'http', name, url_in_args])
+                else:
+                    if not command:
+                        raise ValueError(f"伺服器 {name} 缺少必要欄位：'command' 或 'serverUrl'/'url'")
+                    cmd.extend([name, command])
+                    for arg in args:
+                        if arg != '-y':
+                            cmd.append(arg)
 
             subprocess.run(cmd, capture_output=True, text=True, check=True)
             print(f"✓ Claude CLI 已添加: {name}")
