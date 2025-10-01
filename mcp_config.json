@@ -1,13 +1,5 @@
 {
   "mcpServers": {
-    "sequential-thinking": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ],
-      "env": {}
-    },
     "Notion": {
       "url": "https://mcp.notion.com/mcp"
     },
@@ -27,13 +19,6 @@
         "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       }
     },
-    "mcp-compass": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@liuyoshio/mcp-compass"
-      ]
-    },
     "git": {
       "command": "uvx",
       "args": [
@@ -48,27 +33,6 @@
         "pinescript-syntax-checker"
       ]
     },
-    "brave-search": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-brave-search"
-      ],
-      "env": {
-        "BRAVE_API_KEY": "${BRAVE_API_KEY}"
-      }
-    },
-    "markitdown": {
-      "command": "markitdown-mcp"
-    },
-    "Canva": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote@latest",
-        "https://mcp.canva.com/mcp"
-      ]
-    },
     "mcp-playwright": {
       "command": "npx",
       "args": [
@@ -76,6 +40,20 @@
         "@playwright/mcp@latest"
       ],
       "env": {}
+    },
+    "ppt": {
+      "command": "uvx",
+      "args": [
+        "--from", "office-powerpoint-mcp-server", "ppt_mcp_server"
+      ],
+      "env": {}
+    },
+    "firecrawl-mcp": {
+      "command": "npx",
+      "args": ["-y", "firecrawl-mcp"],
+      "env": {
+        "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+      }
     }
   }
 }

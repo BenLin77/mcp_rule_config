@@ -155,7 +155,8 @@ def sync_to_claude_cli(config: dict):
                 else:
                     if not command:
                         raise ValueError(f"伺服器 {name} 缺少必要欄位：'command' 或 'serverUrl'/'url'")
-                    cmd.extend([name, command])
+                    # 使用 '--' 作為參數分隔，避免 Claude CLI 將後續引數（如 '--from'）誤判為自身參數
+                    cmd.extend([name, "--", command])
                     for arg in args:
                         if arg != '-y':
                             cmd.append(arg)
