@@ -41,18 +41,24 @@
       ],
       "env": {}
     },
-    "ppt": {
-      "command": "uvx",
-      "args": [
-        "--from", "office-powerpoint-mcp-server", "ppt_mcp_server"
-      ],
-      "env": {}
-    },
     "firecrawl-mcp": {
       "command": "npx",
       "args": ["-y", "firecrawl-mcp"],
       "env": {
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
+      }
+    },
+    "yfmcp": {
+      "command": "uvx",
+      "args": ["yfmcp@latest"]
+    },
+    "n8n-mcp": {
+      "command": "npx",
+      "args": ["n8n-mcp"],
+      "env": {
+        "MCP_MODE": "stdio",
+        "LOG_LEVEL": "error",
+        "DISABLE_CONSOLE_OUTPUT": "true"
       }
     }
   }
