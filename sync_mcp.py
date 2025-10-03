@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 import re
 import tempfile
-from typing import Set, List
+from typing import Set, List, Dict
 
 
 def expand_variables(content: str) -> str:
@@ -30,6 +30,90 @@ def expand_variables(content: str) -> str:
         return value
 
     return pattern.sub(replace_var, content)
+
+
+def _parse_dotenv_file(path: Path) -> Dict[str, str]:
+    """解析簡單 .env 檔 (KEY=VALUE)。忽略註解與空行。
+    - 不支援複雜插值，只做最基本的 KEY=VALUE。
+    - 去除成對引號。
+    """
+    env: Dict[str, str] = {}
+    if not path.exists() or not path.is_file():
+        return env
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if not s or s.startswith("#"):
+                continue
+            # 支援前綴 export KEY=VAL
+            if s.startswith("export "):
+                s = s[len("export "):].lstrip()
+            if "=" not in s:
+                continue
+            key, val = s.split("=", 1)
+            key = key.strip()
+            val = val.strip()
+            # 去除首尾引號
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            env[key] = val
+    except Exception:
+        # 靜默忽略解析錯誤，避免影響主要流程
+        pass
+    return env
+
+
+def _env_from_fish_login() -> Dict[str, str]:
+    """透過 fish login shell 取得環境變數 (會載入 ~/.config/fish/config.fish 等)，
+    回傳 KEY=VALUE 字典。若 fish 不存在或失敗，回傳空字典。
+    """
+    try:
+        proc = subprocess.run(
+            ["fish", "-lc", "env"], capture_output=True, text=True, check=False
+        )
+        if proc.returncode != 0:
+            return {}
+        env: Dict[str, str] = {}
+        for line in (proc.stdout or "").splitlines():
+            if not line or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            env[k] = v
+        return env
+    except FileNotFoundError:
+        # 系統沒有 fish，忽略
+        return {}
+    except Exception:
+        return {}
+
+
+def reload_env_vars() -> None:
+    """在每次執行前重新載入環境變數：
+    1. 專案根目錄 .env
+    2. 使用者家目錄 ~/.env
+    3. fish login shell 的 env (若可用)
+
+    載入順序：較前面的優先度較高；後者不覆蓋既有鍵，避免意外覆蓋既有環境。
+    """
+    project_root = Path(__file__).parent
+
+    # 1) 專案 .env
+    proj_env = _parse_dotenv_file(project_root / ".env")
+    for k, v in proj_env.items():
+        if k not in os.environ:
+            os.environ[k] = v
+
+    # 2) 家目錄 .env
+    home_env = _parse_dotenv_file(Path.home() / ".env")
+    for k, v in home_env.items():
+        if k not in os.environ:
+            os.environ[k] = v
+
+    # 3) fish login 環境
+    fish_env = _env_from_fish_login()
+    for k, v in fish_env.items():
+        if k not in os.environ:
+            os.environ[k] = v
 
 
 def process_config():
@@ -49,6 +133,9 @@ def process_config():
         # 讀取原始配置
         with open(config_path, 'r', encoding='utf-8') as f:
             raw_content = f.read()
+
+        # 在展開之前，重新載入環境變數來源 (.env / ~/.env / fish)
+        reload_env_vars()
 
         # 替換環境變數
         processed_content = expand_variables(raw_content)
