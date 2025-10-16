@@ -48,10 +48,6 @@
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       }
     },
-    "yfmcp": {
-      "command": "uvx",
-      "args": ["yfmcp@latest"]
-    },
     "n8n-mcp": {
       "command": "npx",
       "args": ["n8n-mcp"],
