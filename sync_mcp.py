@@ -455,7 +455,8 @@ def sync_global_rules():
 def sync_windsurf_workflows():
     """同步 workflows 目錄下的所有 .md 到 Windsurf 的 workflows 目標資料夾。
     - 來源: <repo>/workflows/**/*.md
-    - 目標: ~/.codeium/windsurf/workflows/
+    - 目標: macOS/Windows: ~/.codeium/windsurf/workflows/
+            Linux: ~/.codeium/windsurf/global_workflows/
     - 自動處理 macOS/Windows/Linux（使用 pathlib Path）
     - 保留子目錄結構，不會刪除目標中多餘檔案
     """
@@ -464,7 +465,11 @@ def sync_windsurf_workflows():
         print("跳過 Windsurf workflows 同步（來源資料夾不存在）")
         return
 
-    target_root = Path.home() / ".codeium" / "windsurf" / "workflows"
+    windsuf_root = Path.home() / ".codeium" / "windsurf"
+    if sys.platform.startswith("linux"):
+        target_root = windsuf_root / "global_workflows"
+    else:
+        target_root = windsuf_root / "workflows"
     try:
         target_root.mkdir(parents=True, exist_ok=True)
     except Exception as e:
