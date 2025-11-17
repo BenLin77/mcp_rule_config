@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 import re
 import tempfile
-from typing import Set, List, Dict
+from typing import Set, List, Dict, Tuple
 
 
 def expand_variables(content: str) -> str:
@@ -397,6 +397,39 @@ def prune_claude_cli(config: dict) -> List[str]:
     return removed
 
 
+def extract_agent_names_from_markdown(content: str) -> Set[str]:
+    """從 workflow Markdown 內容找出 agent (step) 名稱。"""
+    pattern = re.compile(r'^\s*-\s*name:\s*([^\n\r]+)', re.MULTILINE)
+    names: Set[str] = set()
+    for match in pattern.finditer(content):
+        raw = match.group(1).strip().strip('"').strip("'")
+        if raw:
+            names.add(raw)
+    return names
+
+
+def build_workflow_agent_index(folder: Path) -> Tuple[Dict[str, Set[Path]], Dict[Path, Set[str]]]:
+    """建立目標 workflows 目錄的 agent 與檔案對應表。"""
+    agent_to_files: Dict[str, Set[Path]] = {}
+    file_to_agents: Dict[Path, Set[str]] = {}
+
+    for md_file in folder.rglob("*.md"):
+        if not md_file.is_file():
+            continue
+        try:
+            text = md_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        agents = extract_agent_names_from_markdown(text)
+        if not agents:
+            continue
+        file_to_agents[md_file] = agents
+        for agent in agents:
+            agent_to_files.setdefault(agent, set()).add(md_file)
+
+    return agent_to_files, file_to_agents
+
+
 def sync_global_rules():
     """同步全域規則檔案"""
     source = Path(__file__).parent / "global_rules.md"
@@ -417,6 +450,74 @@ def sync_global_rules():
             print(f"✓ {editor} 全域規則: {target}")
         except Exception as e:
             print(f"✗ {editor} 全域規則失敗: {e}")
+
+
+def sync_windsurf_workflows():
+    """同步 workflows 目錄下的所有 .md 到 Windsurf 的 workflows 目標資料夾。
+    - 來源: <repo>/workflows/**/*.md
+    - 目標: ~/.codeium/windsurf/workflows/
+    - 自動處理 macOS/Windows/Linux（使用 pathlib Path）
+    - 保留子目錄結構，不會刪除目標中多餘檔案
+    """
+    source_dir = Path(__file__).parent / "workflows"
+    if not source_dir.exists() or not source_dir.is_dir():
+        print("跳過 Windsurf workflows 同步（來源資料夾不存在）")
+        return
+
+    target_root = Path.home() / ".codeium" / "windsurf" / "workflows"
+    try:
+        target_root.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        print(f"✗ 建立 Windsurf workflows 目標目錄失敗: {e}")
+        return
+
+    agent_to_files, file_to_agents = build_workflow_agent_index(target_root)
+
+    count = 0
+    for src in source_dir.rglob("*.md"):
+        if not src.is_file():
+            continue
+        try:
+            rel = src.relative_to(source_dir)
+            dst = target_root / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            content = src.read_text(encoding="utf-8")
+            agents = extract_agent_names_from_markdown(content)
+
+            # 若目標已有相同 agent 名稱，先移除舊檔
+            files_to_remove: Set[Path] = set()
+            for agent in agents:
+                files_to_remove.update(agent_to_files.get(agent, set()))
+
+            for old in files_to_remove:
+                try:
+                    if old.exists():
+                        old.unlink()
+                        print(f"↻ 移除舊版 workflow (agent 重複): {old}")
+                except Exception as e:
+                    print(f"✗ 無法移除舊 workflow {old}: {e}")
+                    continue
+                for agent in file_to_agents.get(old, set()):
+                    files = agent_to_files.get(agent)
+                    if files:
+                        files.discard(old)
+                        if not files:
+                            agent_to_files.pop(agent, None)
+                file_to_agents.pop(old, None)
+
+            shutil.copy2(src, dst)
+            if agents:
+                file_to_agents[dst] = agents
+                for agent in agents:
+                    agent_to_files.setdefault(agent, set()).add(dst)
+
+            print(f"✓ Windsurf workflow: {dst}")
+            count += 1
+        except Exception as e:
+            print(f"✗ 複製失敗 {src} -> {e}")
+
+    if count == 0:
+        print("注意: workflows 來源目錄內未找到任何 .md 檔")
 
 
 def main():
@@ -442,6 +543,9 @@ def main():
 
         # 4. 同步全域規則
         sync_global_rules()
+
+        # 4.1 同步 Windsurf workflows (.md)
+        sync_windsurf_workflows()
 
         print(f"\n同步完成！成功: {success_count}/3 個目標")
 
