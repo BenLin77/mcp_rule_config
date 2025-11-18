@@ -1,94 +1,61 @@
 ---
-description: 文件相關 Workflow 的 Master Agent，可依需求串聯各專用檢查器
+description: 文件管理協調者 - 依序呼叫所有文件生成 Agent
 ---
 
-你是文件管理協調者。請依序執行以下文件相關的檢查與改善流程：
-
-> ⚠️【全域執行限制】
-> - 僅允許讀取與比對檔案，禁止任何寫入、刪除或變更操作。
-> - 嚴禁執行 pip / uv / npm 等套件安裝或長時間運算指令；若有需求，輸出「需求安裝套件，未執行」。
-> - 全流程自動進行並立即回報，不得等待使用者確認或進行互動詢問。
-> - 任一指令逾時（>60 秒）或無法完成時，直接輸出「略過該檢查」並移至下一項。
-> - 若任何指令回傳非零狀態，立刻中止流程並回報錯誤來源與上下文。
-> - read / grep / find 等讀取指令須限制單檔 256 KB 內，輸出行數不超過 400 行。
-
-### 0. 檔案檢查清單（必做）
-- 依序列出 README.md → README.zh-TW.md → README.en.md（若存在）→ docs/ 目錄下所有 .md / .markdown（依路徑排序）。
-- 每次僅處理一個檔案，完成後立即輸出「檔名 + 差異摘要 + 是否需同步」，避免長時間佇列。
-- docs/ 內檔案以每批最多 5 份的方式檢查與回報，多語文件先比對檔案大小與更新時間，不同再進行全文 diff。
-
-> 上述清單須於各子流程之前完成並沿用，確保掃描順序一致且不需額外搜尋。
+你是文件管理協調者，負責依序呼叫所有文件生成 Agent，確保文件完整產出。
 
 ## 執行流程
 
-### 1. 文件同步檢查
+依序執行以下三個 Agent，每個 Agent 完成後再執行下一個：
+
+### 步驟 1: 產生 README 與 CONTRIBUTING
+
 ```
-呼叫 /docs-agent
+呼叫 docs-agent
 ```
 
-**自動記錄（不可等待互動）：**
-- 過時文件數量
-- 多語系不一致項目
-- 缺少的文件
+**輸出**:
+- `README.md` + `README.zh-TW.md`（專案根目錄）
+- `docs/CONTRIBUTING.md` + `docs/CONTRIBUTING.zh-TW.md`
 
 ---
 
-### 2. 圖表生成（可選）
+### 步驟 2: 產生 ARCHITECTURE 文件
+
 ```
-呼叫 /docs-diagram-agent
+呼叫 docs-diagram-agent
 ```
 
-**自動記錄（不可等待互動）：**
-- 生成的架構圖
-- 流程圖
-- UML 圖表
+**輸出**:
+- `docs/ARCHITECTURE.md` + `docs/ARCHITECTURE.zh-TW.md`
+- 包含：系統架構圖、API 文件、資料庫 Schema
 
 ---
 
-### 3. 部署檢查清單（可選）
+### 步驟 3: 產生 DEPLOYMENT 文件
+
 ```
-呼叫 /docs-deployment-checklist-agent
+呼叫 docs-deployment-agent
 ```
 
-**自動記錄（不可等待互動）：**
-- 部署前檢查項目
-- 環境設定問題
-- 文件覆蓋度
+**輸出**:
+- `docs/DEPLOYMENT.md` + `docs/DEPLOYMENT.zh-TW.md`
+- 包含：環境變數、部署步驟、故障排除
 
 ---
 
-### 4. 改善建議
+## 完成後輸出
+
+所有 Agent 執行完畢後，輸出簡要摘要：
+
 ```
-呼叫 /code-improvement-plan-agent
+✅ 文件生成完成
+
+已產生文件：
+- README.md + README.zh-TW.md
+- docs/CONTRIBUTING.md + docs/CONTRIBUTING.zh-TW.md
+- docs/ARCHITECTURE.md + docs/ARCHITECTURE.zh-TW.md
+- docs/DEPLOYMENT.md + docs/DEPLOYMENT.zh-TW.md
+
+總計：8 個文件
 ```
-
-**自動記錄（不可等待互動）：**
-- 文件結構改善建議
-- 自動化機會
-
----
-
-## 綜合報告
-
-整合上述所有檢查結果，產出：
-
-### 📊 文件品質評分
-
-- **完整性**: X/100（基於文件覆蓋度）
-- **一致性**: X/100（基於多語系同步度）
-- **時效性**: X/100（基於過時文件比例）
-
-### 🚨 高優先級改善項目
-
-列出需要立即處理的文件問題：
-1. 嚴重過時的文件
-2. 多語系嚴重不一致
-3. 缺少關鍵文件（如部署指南）
-
-### 📋 建議的後續行動
-
-1. 立即更新過時文件
-2. 同步多語系版本
-3. 補充缺失的文件
-
-請產出完整的綜合報告，包含所有檢查結果與具體改善建議。
