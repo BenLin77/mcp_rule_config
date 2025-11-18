@@ -493,10 +493,8 @@ def sync_windsurf_workflows():
         return
 
     windsuf_root = Path.home() / ".codeium" / "windsurf"
-    if sys.platform.startswith("linux"):
-        target_root = windsuf_root / "global_workflows"
-    else:
-        target_root = windsuf_root / "workflows"
+    # Windsurf 在所有平台都使用 global_workflows
+    target_root = windsuf_root / "global_workflows"
     try:
         target_root.mkdir(parents=True, exist_ok=True)
     except Exception as e:
