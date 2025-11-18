@@ -162,8 +162,20 @@ def process_config():
         sys.exit(1)
 
 
+def files_are_identical(file1: Path, file2: Path) -> bool:
+    """比對兩個檔案內容是否完全相同"""
+    if not file1.exists() or not file2.exists():
+        return False
+    try:
+        content1 = file1.read_text(encoding='utf-8')
+        content2 = file2.read_text(encoding='utf-8')
+        return content1 == content2
+    except Exception:
+        return False
+
+
 def sync_to_editors(config_data: dict, temp_path: Path):
-    """同步配置到各編輯器（使用臨時檔案）"""
+    """同步配置到各編輯器（使用臨時檔案，僅在內容不同時更新）"""
     home = Path.home()
 
     # 目標路徑配置
@@ -178,9 +190,15 @@ def sync_to_editors(config_data: dict, temp_path: Path):
     for editor, target_path in targets.items():
         try:
             target_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(temp_path, target_path)
-            print(f"✓ {editor}: {target_path}")
-            success_count += 1
+
+            # 比對檔案內容
+            if files_are_identical(temp_path, target_path):
+                print(f"⊜ {editor}: 內容相同，跳過更新")
+                success_count += 1
+            else:
+                shutil.copy2(temp_path, target_path)
+                print(f"✓ {editor}: {target_path}")
+                success_count += 1
         except Exception as e:
             print(f"✗ {editor}: {e}")
 
@@ -198,15 +216,19 @@ def sync_to_claude_cli(config: dict):
     """同步到 Claude CLI"""
     servers = config.get('mcpServers', {})
 
-    # 在新增任何 MCP 之前，先清除 Claude CLI 中所有已註冊的 MCP
+    # 先比較目前 Claude CLI 已註冊的 MCP 名稱與設定檔是否一致
     try:
-        removed = remove_all_claude_cli_mcps()
-        if removed:
-            print(f"已先行清除 Claude CLI 內既有 MCP: {', '.join(removed)}")
-    except Exception as e:
-        print(f"清除 Claude CLI 既有 MCP 時發生錯誤（將繼續嘗試新增）: {e}")
+        existing = list_claude_cli_mcp_names()
+    except Exception:
+        existing = set()
 
-    print(f"正在同步 {len(servers)} 個 MCP 伺服器到 Claude CLI...")
+    desired = desired_mcp_names(config)
+
+    if existing == desired:
+        print("Claude CLI MCP 名稱清單與 mcp_config.json 相同，略過 Claude MCP 同步。")
+        return
+
+    print(f"正在同步 {len(servers)} 個 MCP 伺服器到 Claude CLI（將只新增缺少的項目）...")
 
     for name, server_config in servers.items():
         if server_config.get('disabled', False):
@@ -431,7 +453,7 @@ def build_workflow_agent_index(folder: Path) -> Tuple[Dict[str, Set[Path]], Dict
 
 
 def sync_global_rules():
-    """同步全域規則檔案"""
+    """同步全域規則檔案（僅在內容不同時更新）"""
     source = Path(__file__).parent / "global_rules.md"
     if not source.exists():
         print("跳過全域規則同步（檔案不存在）")
@@ -446,8 +468,13 @@ def sync_global_rules():
     for editor, target in targets.items():
         try:
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-            print(f"✓ {editor} 全域規則: {target}")
+
+            # 比對檔案內容
+            if files_are_identical(source, target):
+                print(f"⊜ {editor} 全域規則: 內容相同，跳過更新")
+            else:
+                shutil.copy2(source, target)
+                print(f"✓ {editor} 全域規則: {target}")
         except Exception as e:
             print(f"✗ {editor} 全域規則失敗: {e}")
 
@@ -510,13 +537,19 @@ def sync_windsurf_workflows():
                             agent_to_files.pop(agent, None)
                 file_to_agents.pop(old, None)
 
-            shutil.copy2(src, dst)
+            # 比對檔案內容
+            if files_are_identical(src, dst):
+                print(f"⊜ Windsurf workflow: 內容相同，跳過 {dst}")
+            else:
+                shutil.copy2(src, dst)
+                print(f"✓ Windsurf workflow: {dst}")
+
+            # 更新索引（無論是否更新，都要維護索引）
             if agents:
                 file_to_agents[dst] = agents
                 for agent in agents:
                     agent_to_files.setdefault(agent, set()).add(dst)
 
-            print(f"✓ Windsurf workflow: {dst}")
             count += 1
         except Exception as e:
             print(f"✗ 複製失敗 {src} -> {e}")
