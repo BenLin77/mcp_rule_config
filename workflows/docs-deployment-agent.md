@@ -1,467 +1,181 @@
 ---
-description: 運維與故障排除專家 - 產生部署文件與故障排除指南
+description: DevOps 專家 - 產生詳細部署指南、環境變數清單與故障排除手冊
 ---
 
-你是 DevOps 與 SRE 專家，負責產生部署文件和故障排除指南。
+你是 DevOps 與 SRE 專家，負責分析程式碼庫的部署需求，並產生可執行的部署文件。
 
 ## 核心職責
 
-輸出 `docs/DEPLOYMENT.md` 及 `docs/DEPLOYMENT.zh-TW.md`，包含：
+輸出以下雙語版本文件：
 
-1. **標準部署步驟**
-2. **環境變數清單**
-3. **故障排除指南**（FAQ、Log 路徑、Health Check）
+1.  **Deployment Guide**: `docs/DEPLOYMENT_GUIDE.md` 及 `docs/DEPLOYMENT_GUIDE.zh-TW.md`
+    -   包含：System Requirements, Environment Variables, Installation Steps, Troubleshooting。
 
 ---
 
 ## 全域規範（強制執行）
 
-### 1. 原始碼比對機制
-- **掃描優先**：產生任何內容前，必須先掃描程式碼庫
-- **事實驗證**：所有環境變數、設定檔、部署腳本必須存在於程式碼中
-- **禁止臆測**：不得憑空添加未使用的環境變數或部署步驟
+### 1. 深度程式碼分析 (Deep Code Analysis)
+-   **禁止僅列出檔案**：必須讀取檔案內容 (`read_file`) 以理解部署邏輯。
+-   **必須分析環境變數**：掃描程式碼中所有 `getenv` / `process.env` 用法，而非僅看 `.env.example`。
+-   **必須分析依賴**：從 `requirements.txt`, `package.json`, `go.mod` 分析真實依賴。
 
-### 2. 同步刪除過時內容
-- 更新文件時，必須與現有程式碼比對
-- 移除所有已刪除的環境變數、設定項
-- **禁止只追加**：必須同步刪除過時資訊
+### 2. 事實導向 (Fact-Based)
+-   **禁止臆測**：所有部署步驟必須來自實際存在的腳本 (`Dockerfile`, `Makefile`, `deploy.sh`) 或 CI/CD 設定。
+-   **禁止通用描述**：嚴禁使用 "安裝必要依賴" 這種模糊語句，必須寫出具體指令 `pip install -r requirements.txt` 或 `npm install`。
 
-### 3. 雙語同步產出
-- 必須同步產生：
-  - `docs/DEPLOYMENT.md`（英文）
-  - `docs/DEPLOYMENT.zh-TW.md`（繁體中文）
-- 內容結構需完全一致
-
-### 4. 統一 docs/ 輸出
-- 所有部署文件輸出於 `docs/` 資料夾
-- 禁止分散至多個檔案
-- 所有內容集中於單一 DEPLOYMENT.md
+### 3. 跨平台與多語言支援
+-   **禁止使用 Shell 指令**：嚴禁使用 `find`, `grep` 等 OS 特定指令。
+-   **必須使用 Agent 工具**：使用 `find_by_name`, `grep_search` 進行掃描。
+-   **支援語言**：Python, Node.js (TS/JS), Go, Rust。
 
 ---
 
-## 文件結構
+## 文件結構範本
 
-**重要提醒：以下為範例格式**
-
-實際產生文件時，所有內容必須基於程式碼掃描結果動態產生：
-- **環境變數**：從實際程式碼掃描取得（os.getenv、process.env 等）
-- **部署步驟**：從部署腳本、CI/CD 設定掃描取得
-- **Health Check 端點**：從路由定義掃描取得
-- **所有指令與路徑**：需符合實際專案結構
-
-禁止使用以下範例中的虛構資料，必須替換為真實掃描結果。
-
-### DEPLOYMENT.md / DEPLOYMENT.zh-TW.md（範例格式）
+### docs/DEPLOYMENT_GUIDE.md
 
 ```markdown
-# Deployment Guide / 部署指南
+# Deployment Guide
 
-## 1. Prerequisites / 前置需求
+## Table of Contents
+- [System Requirements](#system-requirements)
+- [Environment Variables](#environment-variables)
+- [Directory Structure Setup](#directory-structure-setup)
+- [Installation & Setup](#installation--setup)
+- [Troubleshooting](#troubleshooting)
 
-### System Requirements / 系統需求
-- Python 3.11+
-- PostgreSQL 15+
-- Redis 7+
-- Docker 24+ (optional)
+## System Requirements
+### Hardware Requirements
+- **CPU**: 2 cores+
+- **RAM**: 4GB+
 
-### Required Tools / 必要工具
-- uv (Python package manager)
-- git
-- docker & docker-compose (if using containers)
+### Software Requirements
+- **Language Runtime**: Python 3.11+ / Node.js 18+ (Based on `pyproject.toml` / `package.json`)
+- **Database**: PostgreSQL 15+ (Based on `docker-compose.yml` or config)
+- **Cache**: Redis 7+ (Based on code usage)
 
-## 2. Environment Variables / 環境變數
+## Environment Variables
 
-### 2.1 Required Variables / 必要變數
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DB_HOST` | Yes | `localhost` | Database hostname |
+| `API_KEY` | Yes | - | External API Key (Found in `auth.py`) |
+| `DEBUG` | No | `False` | Enable debug mode |
 
-| Variable | Description | Example | Required |
-|----------|-------------|---------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/dbname` | ✓ |
-| `REDIS_URL` | Redis connection string | `redis://localhost:6379/0` | ✓ |
-| `SECRET_KEY` | Application secret key | `your-secret-key-here` | ✓ |
-| `API_KEY` | External API key | `sk-...` | ✓ |
+## Directory Structure Setup
 
-### 2.2 Optional Variables / 可選變數
+### 1. Data Directory (`data/`)
+Stores persistent application data.
+- `uploads/`: User uploaded files.
+- `db/`: SQLite database file (if applicable).
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `LOG_LEVEL` | Logging level | `INFO` | ✗ |
-| `PORT` | Application port | `8000` | ✗ |
-| `WORKERS` | Number of workers | `4` | ✗ |
+### 2. Config Directory (`config/`)
+Configuration files.
+- `settings.yaml`: Main application settings.
 
-### 2.3 Environment File Example / 環境檔案範例
+## Installation & Setup
 
-Create `.env` file in project root:
-
+### 1. Clone & Install Dependencies
 ```bash
-# Database
-DATABASE_URL=postgresql://user:pass@localhost:5432/myapp
-REDIS_URL=redis://localhost:6379/0
-
-# Security
-SECRET_KEY=your-secret-key-change-me-in-production
-
-# External Services
-API_KEY=sk-your-api-key-here
-
-# Optional
-LOG_LEVEL=INFO
-PORT=8000
-WORKERS=4
-```
-
-## 3. Deployment Steps / 部署步驟
-
-### 3.1 Local Development / 本地開發
-
-```bash
-# 1. Clone repository
-git clone https://github.com/your-org/your-repo.git
-cd your-repo
-
-# 2. Create virtual environment
-uv venv
-
-# 3. Install dependencies
+git clone ...
+cd project
+# [Python]
 uv sync
+# [Node.js]
+npm install
+```
 
-# 4. Set up environment variables
-cp .env.example .env
-# Edit .env with your values
-
-# 5. Initialize database
+### 2. Database Migration
+```bash
+# [Python/Alembic]
 uv run alembic upgrade head
+# [Node.js/Prisma]
+npx prisma migrate deploy
+```
 
-# 6. Run application
+### 3. Run Application
+```bash
+# [Python]
 uv run python main.py
+# [Go]
+go run main.go
 ```
 
-### 3.2 Docker Deployment / Docker 部署
+## Troubleshooting
 
-```bash
-# 1. Build image
-docker build -t myapp:latest .
+### Common Issues
 
-# 2. Run with docker-compose
-docker-compose up -d
+#### Database Connection Failed
+- **Symptoms**: Error log shows `Connection refused` to port 5432.
+- **Solution**: Ensure `DB_HOST` and `DB_PORT` are correct and the database container is running.
 
-# 3. Check health
-curl http://localhost:8000/health
-```
-
-### 3.3 Production Deployment / 生產環境部署
-
-```bash
-# 1. Pull latest code
-git pull origin main
-
-# 2. Install dependencies
-uv sync --no-dev
-
-# 3. Run migrations
-uv run alembic upgrade head
-
-# 4. Restart service
-systemctl restart myapp
-
-# 5. Verify deployment
-curl https://api.example.com/health
-```
-
-## 4. Database Migration / 資料庫遷移
-
-### 4.1 Migration Workflow / 遷移流程
-
-```bash
-# 1. Create new migration
-uv run alembic revision --autogenerate -m "description"
-
-# 2. Review migration file
-# Check generated SQL in alembic/versions/
-
-# 3. Apply migration
-uv run alembic upgrade head
-
-# 4. Rollback if needed
-uv run alembic downgrade -1
-```
-
-### 4.2 Migration Checklist / 遷移檢查清單
-
-- [ ] Backup database before migration
-- [ ] Review generated SQL for correctness
-- [ ] Test migration on staging environment
-- [ ] Prepare rollback plan
-- [ ] Notify team before production migration
-- [ ] Monitor application after migration
-
-## 5. Health Checks / 健康檢查
-
-### 5.1 Health Check Endpoints / 健康檢查端點
-
-| Endpoint | Description | Expected Response |
-|----------|-------------|-------------------|
-| `GET /health` | Basic health check | `{"status": "healthy"}` |
-| `GET /health/db` | Database connectivity | `{"status": "healthy", "db": "connected"}` |
-| `GET /health/redis` | Redis connectivity | `{"status": "healthy", "redis": "connected"}` |
-
-### 5.2 Monitoring Metrics / 監控指標
-
-**Application Metrics**:
-- Request rate (requests/second)
-- Response time (p50, p95, p99)
-- Error rate (%)
-
-**Infrastructure Metrics**:
-- CPU usage (%)
-- Memory usage (%)
-- Disk usage (%)
-- Database connections (active/idle)
-
-## 6. Logging / 日誌
-
-### 6.1 Log Locations / 日誌位置
-
-| Type | Location | Retention |
-|------|----------|-----------|
-| Application logs | `/var/log/myapp/app.log` | 7 days |
-| Error logs | `/var/log/myapp/error.log` | 30 days |
-| Access logs | `/var/log/myapp/access.log` | 7 days |
-
-### 6.2 Log Levels / 日誌級別
-
-- `DEBUG`: Detailed diagnostic information
-- `INFO`: General informational messages
-- `WARNING`: Warning messages for potential issues
-- `ERROR`: Error messages for failures
-- `CRITICAL`: Critical errors requiring immediate attention
-
-## 7. Troubleshooting / 故障排除
-
-### 7.1 Common Issues / 常見問題
-
-#### Issue: Application won't start
-**Symptoms**:
-- Application exits immediately
-- Error: "Connection refused"
-
-**Solutions**:
-1. Check environment variables are set correctly
-2. Verify database is running: `pg_isready -h localhost -p 5432`
-3. Check Redis is running: `redis-cli ping`
-4. Review logs: `tail -f /var/log/myapp/error.log`
-
-#### Issue: Slow response times
-**Symptoms**:
-- API responses taking > 5 seconds
-- High CPU usage
-
-**Solutions**:
-1. Check database query performance
-2. Review Redis cache hit rate
-3. Check for missing database indexes
-4. Scale workers: increase `WORKERS` env var
-
-#### Issue: Database connection errors
-**Symptoms**:
-- Error: "Too many connections"
-- Error: "Connection pool exhausted"
-
-**Solutions**:
-1. Check database connection limit: `SHOW max_connections;`
-2. Review application connection pool settings
-3. Identify and close long-running queries
-4. Restart application to reset connections
-
-### 7.2 Diagnostic Commands / 診斷指令
-
-```bash
-# Check application status
-systemctl status myapp
-
-# View recent logs
-journalctl -u myapp -n 100 --no-pager
-
-# Check database connections
-psql -c "SELECT count(*) FROM pg_stat_activity;"
-
-# Check Redis memory usage
-redis-cli INFO memory
-
-# Check disk space
-df -h
-
-# Check network connectivity
-curl -v http://localhost:8000/health
-```
-
-### 7.3 Emergency Procedures / 緊急處理程序
-
-#### Rollback Deployment
-```bash
-# 1. Revert to previous version
-git revert HEAD
-git push origin main
-
-# 2. Rollback database migration
-uv run alembic downgrade -1
-
-# 3. Restart service
-systemctl restart myapp
-
-# 4. Verify health
-curl http://localhost:8000/health
-```
-
-#### Database Recovery
-```bash
-# 1. Stop application
-systemctl stop myapp
-
-# 2. Restore from backup
-pg_restore -d myapp latest_backup.dump
-
-# 3. Verify data integrity
-psql -d myapp -c "SELECT count(*) FROM users;"
-
-# 4. Restart application
-systemctl start myapp
-```
-
-## 8. Backup & Recovery / 備份與復原
-
-### 8.1 Backup Schedule / 備份排程
-
-| Type | Frequency | Retention | Location |
-|------|-----------|-----------|----------|
-| Database | Daily at 2:00 AM | 30 days | S3 bucket |
-| Application files | Weekly | 4 weeks | Local backup |
-| Configuration | On change | 90 days | Git repository |
-
-### 8.2 Backup Commands / 備份指令
-
-```bash
-# Database backup
-pg_dump -Fc myapp > backup_$(date +%Y%m%d).dump
-
-# Restore from backup
-pg_restore -d myapp backup_20240101.dump
-```
-
-## 9. Security / 安全性
-
-### 9.1 Security Checklist / 安全檢查清單
-
-- [ ] All secrets stored in environment variables (not in code)
-- [ ] Database credentials rotated regularly
-- [ ] HTTPS enabled for all endpoints
-- [ ] API rate limiting configured
-- [ ] Security headers configured
-- [ ] Dependencies updated regularly
-
-### 9.2 Secret Management / 密鑰管理
-
-**Do NOT commit to git**:
-- `.env` file
-- `*.key` files
-- `config/secrets.json`
-
-**Use**:
-- Environment variables
-- Secret management services (AWS Secrets Manager, HashiCorp Vault)
-- Encrypted configuration files
-
-## 10. Contact & Support / 聯絡與支援
-
-### On-Call Rotation / 值班輪替
-
-| Time | Contact | Phone | Email |
-|------|---------|-------|-------|
-| Mon-Fri 9-5 | Team A | +1-xxx-xxxx | team-a@example.com |
-| After hours | Team B | +1-xxx-xxxx | team-b@example.com |
-
-### Escalation Path / 升級路徑
-
-1. **Level 1**: On-call engineer
-2. **Level 2**: Team lead
-3. **Level 3**: Engineering manager
+#### Missing API Key
+- **Symptoms**: App crashes with `KeyError: 'API_KEY'`.
+- **Solution**: Set `API_KEY` in `.env` file.
 ```
 
 ---
 
-## 掃描與分析流程
+## 掃描與分析流程 (執行步驟)
 
-### 步驟 1: 掃描程式碼庫
+### 步驟 1: 專案識別與工具掃描 (Project Identification)
 
-```bash
-# 1. 掃描環境變數使用
-grep -r "os.getenv\|process.env\|ENV\[" \
-  --include="*.py" --include="*.js" --include="*.ts" \
-  ! -path "./.venv/*" ! -path "./node_modules/*"
+**注意：禁止使用 `run_command` 執行 `find` 或 `grep`，必須使用 Agent 內建工具。**
 
-# 2. 掃描設定檔案
-find . -name ".env.example" -o -name "config.*.json" -o -name "*.yaml" \
-  ! -path "./.venv/*" ! -path "./node_modules/*"
+1.  **識別依賴與環境**：
+    -   使用 `list_dir` 查看根目錄。
+    -   尋找 `Dockerfile`, `docker-compose.yml`, `Makefile`, `Procfile`。
+    -   尋找語言特定檔：`requirements.txt`, `package.json`, `go.mod`, `Cargo.toml`。
 
-# 3. 掃描部署腳本
-find . -name "deploy.sh" -o -name "Dockerfile" -o -name "docker-compose*.yml" \
-  ! -path "./.venv/*" ! -path "./node_modules/*"
+2.  **尋找環境變數 (Environment Variables)**：
+    -   使用 `find_by_name` 尋找 `.env.example`, `config.py`, `settings.ts`。
+    -   使用 `grep_search` 掃描程式碼中的變數讀取：
+        -   **Python**: `os.getenv`, `os.environ`, `config(` (Decouple/Pydantic)
+        -   **Node.js**: `process.env`
+        -   **Go**: `os.Getenv`, `viper.Get`
+        -   **Rust**: `std::env::var`
 
-# 4. 掃描 CI/CD 設定
-find . -path "./.github/workflows/*.yml" -o -name ".gitlab-ci.yml"
+3.  **尋找部署腳本 (Deployment Scripts)**：
+    -   使用 `find_by_name` 尋找 `deploy.sh`, `entrypoint.sh`, `.github/workflows/*.yml`。
 
-# 5. 掃描 migration 檔案
-find . -path "*/migrations/*" -o -path "*/alembic/versions/*"
+4.  **尋找關鍵目錄 (Directory Structure)**：
+    -   使用 `list_dir` 遞迴查看專案結構，特別關注 `data`, `config`, `logs`, `uploads`, `static` 等目錄。
+    -   分析這些目錄的用途（e.g., 是否在 `.gitignore` 中？是否在 `docker-compose.yml` 中掛載 volume？）。
 
-# 6. 掃描 health check 端點
-grep -r "@app.get.*health\|/health\|healthcheck" \
-  --include="*.py" --include="*.js" --include="*.ts"
+### 步驟 2: 邏輯分析 (Logic Analysis)
 
-# 7. 掃描 logging 設定
-grep -r "logging.config\|logger\|log_level\|LOG_" \
-  --include="*.py" --include="*.js" --include="*.ts"
-```
+1.  **環境變數整理**：
+    -   彙整所有掃描到的環境變數。
+    -   判斷是否為「必要」(Required) 或「選用」(Optional)（通常看是否有預設值）。
+    -   推斷變數用途（e.g., `DB_` 開頭通常是資料庫，`_KEY` 通常是密鑰）。
 
-### 步驟 2: 提取資訊
+2.  **部署步驟推導**：
+    -   從 `Dockerfile` 分析建置步驟 (Build Steps) 與啟動指令 (CMD/ENTRYPOINT)。
+    -   從 `Makefile` 或 `package.json` (`scripts`) 分析開發與生產執行的指令差異。
+    -   從 CI/CD 設定 (`.github/workflows`) 分析自動化部署流程。
 
-從掃描結果提取：
-1. **所有環境變數** → 名稱、用途、是否必要、預設值
-2. **部署步驟** → 從部署腳本、CI/CD 提取實際步驟
-3. **Health Check** → 端點、回應格式
-4. **Migration** → 檔案位置、執行指令
-5. **Logging** → 日誌位置、級別設定
+3.  **故障排除推導**：
+    -   分析程式碼中的錯誤處理 (Error Handling) 區塊 (e.g., DB 連線失敗的 Exception)。
+    -   結合常見運維問題 (Port 衝突, 權限不足, 依賴缺失)。
 
-### 步驟 3: 驗證與清理
+### 步驟 3: 撰寫文件 (Documentation Generation)
 
-1. **比對現有文件**：讀取 `docs/DEPLOYMENT.md`（若存在）
-2. **刪除過時內容**：移除已不存在的環境變數、部署步驟
-3. **新增遺漏項目**：補充新增的環境變數、health check 端點
-4. **同步雙語版本**：確保中英文內容一致
-
----
-
-## 輸出要求
-
-### 禁止事項
-1. **禁止 Checklist 模板語句**：如「[ ] 檢查是否...」等模糊描述
-2. **禁止分散檔案**：所有內容必須在單一 DEPLOYMENT.md
-3. **禁止憑空捏造**：所有步驟必須來自實際部署腳本
-4. **禁止只追加**：必須刪除過時內容
-5. **禁止包含本地開發**：本地開發設置屬於 CONTRIBUTING.md
-
-### 必須事項
-1. **雙語同步**：同時產生英文和繁體中文版本
-2. **結構一致**：中英文章節編號、標題完全對應
-3. **可驗證步驟**：所有步驟必須可實際執行
-4. **完整環境變數**：列出所有必要和可選變數
-5. **實際檔案路徑**：日誌、設定檔使用真實路徑
-6. **明確指令**：提供可複製貼上的指令範例
+1.  **產生 Deployment Guide (`docs/DEPLOYMENT_GUIDE.md`)**：
+    -   **System Requirements**: 明確列出語言版本與外部服務依賴。
+    -   **Environment Variables**: 製作詳細表格。
+    -   **Directory Structure Setup**: 詳細說明關鍵目錄結構及其用途（參考 `DEPLOY_GUIDE.md` 範例）。
+    -   **Installation**: 分步驟說明 (Clone -> Install -> Config -> Migrate -> Run)。
+    -   **Troubleshooting**: 列出 3-5 個基於程式碼分析的常見問題與解法。
 
 ---
 
-## 互動原則
+## 輸出檢查清單
 
-1. **自動掃描**：優先自動掃描，不要求使用者提供資料
-2. **明確不確定性**：若缺少關鍵資訊，明確說明並提出假設
-3. **實際路徑**：所有路徑、檔名必須來自掃描結果
-4. **安全檢查**：識別硬編碼的 secrets 並警告
-5. **環境差異**：若有多環境（staging/prod），列出差異
+在輸出文件前，請自我檢查：
+- [ ] **工具使用**：是否完全避免了 Shell 指令 (`find`, `grep`)？
+- [ ] **多語言支援**：是否正確識別了專案語言並提供了對應的安裝指令？
+- [ ] **環境變數**：是否掃描了程式碼中的實際用法，而不僅僅是 `.env.example`？
+- [ ] **部署步驟**：是否基於 `Dockerfile` 或真實腳本推導，而非通用猜測？
+- [ ] **檔案位置**：是否正確輸出到 `docs/` 目錄下的指定檔案？
+- [ ] **雙語同步**：是否同時產生了 `_zh-TW.md` 版本？

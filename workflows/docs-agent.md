@@ -9,517 +9,247 @@ description: 主專案入口文件專家 - 產生 README 與 CONTRIBUTING 文件
 輸出雙語版本：
 
 1. **README**: `README.md` 及 `README.zh-TW.md`（專案根目錄）
-2. **CONTRIBUTING**: `docs/CONTRIBUTING.md` 及 `docs/CONTRIBUTING.zh-TW.md`
 
 ---
 
 ## 全域規範（強制執行）
 
-### 1. 原始碼比對機制
-- **掃描優先**：產生任何內容前，必須先掃描程式碼庫
-- **事實驗證**：所有功能、模組、指令必須存在於程式碼中
-- **禁止臆測**：不得憑空添加未實作的功能描述
+### 1. 深度程式碼分析 (Deep Code Analysis)
+- **禁止僅列出檔案**：必須讀取檔案內容 (`read_file`) 以理解邏輯。
+- **必須分析資料流**：追蹤資料如何在 API、資料庫與 Worker 之間流動，並建立 Step-by-Step 的流程敘述。
+- **必須提取核心邏輯**：
+  - **關鍵函式 (Key Methods)**：不只列出類別，需提取核心方法 (e.g., `process_job`, `create_order`) 及其邏輯。
+  - **時間與排程 (Timing)**：分析 Worker 的輪詢間隔 (e.g., `time.sleep(5)`) 或 Cron 排程。
+  - **前端架構 (Frontend)**：分析 `package.json` (技術棧) 與 `src/` (元件結構、狀態管理)。
+  - **資料庫 Schema**：從 ORM Models 提取結構與關聯。
 
-### 2. 同步刪除過時內容
-- 更新文件時，必須與現有程式碼比對
-- 移除所有已刪除的模組、功能、指令
-- **禁止只追加**：必須同步刪除過時資訊
+### 2. 事實導向 (Fact-Based)
+- **禁止通用描述**：嚴禁使用 "負責處理相關邏輯" 這種空泛語句。必須具體說明 "負責將 X 轉換為 Y，並寫入 Z 資料表"。
+- **禁止臆測**：若程式碼中未發現某功能（如 Redis），絕對不可提及。
+- **連結程式碼**：文件中的描述必須能對應到具體的檔案或函式。
 
 ### 3. 雙語同步產出
 - 必須同步產生：
   - `README.md`（英文）+ `README.zh-TW.md`（繁體中文）
-  - `docs/CONTRIBUTING.md`（英文）+ `docs/CONTRIBUTING.zh-TW.md`（繁體中文）
-- 內容結構需完全一致
-
-### 4. 統一輸出位置
-- **README**: 放於專案根目錄
-- **CONTRIBUTING**: 放於 `docs/` 資料夾
-- 禁止分散至多個檔案
+- 內容結構需完全一致。
 
 ---
 
-## 文件結構
+## 文件結構範本 (高品質標準)
 
-**重要提醒：以下為範例格式**
+**注意：以下僅為結構參考，內容必須根據實際掃描結果生成**
 
-實際產生文件時，所有內容必須基於程式碼掃描結果動態產生：
-- **專案名稱與描述**：從 pyproject.toml、package.json 掃描取得
-- **功能列表**：從實際模組結構掃描取得
-- **安裝指令**：從實際專案配置掃描取得
-- **CLI 指令**：從 argparse/click 定義掃描取得
-- **專案結構**：從實際資料夾層級掃描取得
-- **技術堆疊**：從依賴清單掃描取得
-
-禁止使用以下範例中的虛構資料，必須替換為真實掃描結果。
-
-### README.md / README.zh-TW.md（範例格式）
+### README.md / README.zh-TW.md 結構
 
 ```markdown
-# Project Name / 專案名稱
+# [Project Name]
 
-[One sentence description / 一句話描述專案用途]
+## Overview / 專案概述
+[高階架構描述，說明系統解決什麼問題]
 
-## Features / 功能特色
+### Tech Stack / 技術棧
+- **Backend**: Python 3.11, Flask, SQLAlchemy
+- **Frontend**: React 18, Vite, TailwindCSS
+- **Database**: PostgreSQL
 
-- Feature 1 / 功能1
-- Feature 2 / 功能2
-- Feature 3 / 功能3
+## Architecture / 系統架構
 
-## Quick Start / 快速開始
-
-### Prerequisites / 前置需求
-- Python 3.11+
-- uv package manager
-
-### Installation / 安裝
-
-```bash
-# Clone repository / 複製專案
-git clone https://github.com/your-org/your-repo.git
-cd your-repo
-
-# Install dependencies / 安裝依賴
-uv sync
-
-# Set up environment / 設定環境變數
-cp .env.example .env
-# Edit .env with your values
-
-# Run application / 執行應用程式
-uv run python main.py
-```
-
-### Basic Usage / 基本使用
-
-```bash
-# Example command / 範例指令
-uv run python main.py --help
-
-# Run specific feature / 執行特定功能
-uv run python main.py process --input data.csv
-```
-
-## Project Structure / 專案結構
+### System Diagram / 架構圖
+**注意：必須使用 ASCII Art (文字符號) 繪製，嚴禁使用 Mermaid。**
 
 ```
-.
-├── src/                # Source code / 原始碼
-│   ├── api/           # API endpoints / API 端點
-│   ├── services/      # Business logic / 業務邏輯
-│   └── models/        # Data models / 資料模型
-├── tests/             # Test files / 測試檔案
-├── docs/              # Documentation / 文件
-│   ├── ARCHITECTURE.md       # System architecture / 系統架構
-│   ├── DEPLOYMENT.md         # Deployment guide / 部署指南
-│   └── CONTRIBUTING.md       # Development guide / 開發指南
-├── main.py            # Application entry point / 應用程式入口
-└── pyproject.toml     # Project configuration / 專案設定
+┌─────────────────┐          ┌─────────────────────┐
+│  User (Web UI)  │◄─────────┤   API Server        │
+└────────┬────────┘          └──────────┬──────────┘
+         │                              │
+         │ HTTP/JSON                    │ DB I/O
+         ▼                              ▼
+┌─────────────────┐          ┌─────────────────────┐
+│   API Server    │          │      Database       │
+└─────────────────┘          └─────────────────────┘
 ```
 
-## Documentation / 文件
-
-- [Architecture / 系統架構](docs/ARCHITECTURE.md) - System design and API documentation
-- [Deployment / 部署指南](docs/DEPLOYMENT.md) - Deployment and troubleshooting guide
-- [Contributing / 開發指南](docs/CONTRIBUTING.md) - Development setup and guidelines
-
-## Technology Stack / 技術堆疊
-
-### Backend / 後端
-- Python 3.11
-- FastAPI 0.104.0
-- SQLAlchemy 2.0
-- PostgreSQL 15
-
-### Infrastructure / 基礎設施
-- Docker
-- Docker Compose
-
-## License / 授權
-
-[MIT License / MIT 授權條款](LICENSE)
-
-## Contact / 聯絡方式
-
-- Email: team@example.com
-- GitHub: https://github.com/your-org/your-repo
-```
-
----
-
-### CONTRIBUTING.md / CONTRIBUTING.zh-TW.md
-
-```markdown
-# Contributing Guide / 開發指南
-
-This guide will help you set up the development environment and contribute to the project.
-
-本指南將協助你設置開發環境並參與專案開發。
-
-## Development Environment Setup / 開發環境設置
-
-### Prerequisites / 前置需求
-
-- Python 3.11+
-- PostgreSQL 15+
-- Redis 7+
-- uv package manager
-
-### Initial Setup / 初始設置
-
-```bash
-# 1. Clone the repository / 複製專案
-git clone https://github.com/your-org/your-repo.git
-cd your-repo
-
-# 2. Create virtual environment / 建立虛擬環境
-uv venv
-
-# 3. Install dependencies / 安裝依賴（包含開發工具）
-uv sync
-
-# 4. Set up environment variables / 設定環境變數
-cp .env.example .env
-# Edit .env with your local database credentials
-# 編輯 .env 填入本地資料庫憑證
-
-# 5. Initialize database / 初始化資料庫
-uv run alembic upgrade head
-
-# 6. Run tests / 執行測試
-uv run pytest
-
-# 7. Run application / 執行應用程式
-uv run python main.py
-```
-
-## Development Workflow / 開發流程
-
-### 1. Create a New Branch / 建立新分支
-
-```bash
-# Create feature branch / 建立功能分支
-git checkout -b feature/your-feature-name
-
-# Create bugfix branch / 建立修復分支
-git checkout -b bugfix/issue-description
-```
-
-### 2. Make Changes / 進行開發
-
-```bash
-# Run application in development mode / 開發模式執行
-uv run python main.py --debug
-
-# Run tests continuously / 持續執行測試
-uv run pytest --watch
-```
-
-### 3. Code Quality / 程式碼品質
-
-```bash
-# Format code / 格式化程式碼
-uv run black .
-
-# Lint code / 程式碼檢查
-uv run ruff check .
-
-# Type checking / 型別檢查
-uv run mypy src/
-
-# Run all quality checks / 執行所有檢查
-uv run pre-commit run --all-files
-```
-
-### 4. Testing / 測試
-
-```bash
-# Run all tests / 執行所有測試
-uv run pytest
-
-# Run specific test file / 執行特定測試檔案
-uv run pytest tests/test_api.py
-
-# Run with coverage / 執行測試並產生覆蓋率報告
-uv run pytest --cov=src --cov-report=html
-
-# View coverage report / 查看覆蓋率報告
-open htmlcov/index.html
-```
-
-### 5. Commit Changes / 提交變更
-
-```bash
-# Stage changes / 暫存變更
-git add .
-
-# Commit with meaningful message / 提交並附上有意義的訊息
-git commit -m "feat: add user authentication"
-
-# Push to remote / 推送至遠端
-git push origin feature/your-feature-name
-```
-
-### 6. Create Pull Request / 建立 Pull Request
-
-1. Go to GitHub repository / 前往 GitHub 專案頁面
-2. Click "New Pull Request" / 點擊「New Pull Request」
-3. Fill in PR template / 填寫 PR 模板
-4. Request review from team members / 請求團隊成員審查
-5. Address review comments / 處理審查意見
-6. Merge after approval / 獲得批准後合併
-
-## Commit Message Guidelines / 提交訊息規範
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/) format:
-
-遵循 [Conventional Commits](https://www.conventionalcommits.org/) 格式：
+### Service Communication Flow / 服務通訊流程
+(使用 ASCII Art 繪製服務間的詳細互動，例如 API -> DB -> Worker)
 
 ```
-<type>(<scope>): <subject>
-
-[optional body]
-
-[optional footer]
+[User] ──POST──> [API] ──INSERT──> [DB]
+                                    │
+                                    │ Poll
+                                    ▼
+                                 [Worker]
 ```
 
-**Types / 類型**:
-- `feat`: New feature / 新功能
-- `fix`: Bug fix / 錯誤修復
-- `docs`: Documentation changes / 文件變更
-- `style`: Code style changes / 程式碼樣式變更
-- `refactor`: Code refactoring / 程式碼重構
-- `test`: Test changes / 測試變更
-- `chore`: Build or auxiliary tool changes / 建置或輔助工具變更
+### Data Flow / 資料流程
+(Step-by-Step 描述核心業務流程，例如：使用者下單 -> API 接收 -> 寫入 DB -> Worker 處理)
+1. **User Action**: 使用者透過 Web UI 提交表單...
+2. **API Processing**: Server 驗證資料並寫入 `jobs` 表 (Status='Queued')...
+3. **Worker Execution**: Background Worker 每 5 秒輪詢一次...
 
-**Examples / 範例**:
-```
-feat(auth): add JWT authentication
-fix(api): handle null pointer exception
-docs(readme): update installation guide
-```
+## Core Modules / 核心模組詳解
 
-## Code Style Guidelines / 程式碼風格規範
+### 1. [Module Name] (`path/to/file.py`)
+**Responsibilities / 職責**:
+- [具體職責 1]
+- [具體職責 2]
 
-### Python Style / Python 風格
+**Key Methods / 關鍵函式**:
+- `process_data(data)`: 驗證輸入並轉換格式...
+- `save_to_db(record)`: 使用 Transaction 寫入資料庫...
 
-- Follow [PEP 8](https://pep8.org/) style guide
-- Use [Black](https://black.readthedocs.io/) for code formatting
-- Maximum line length: 88 characters
-- Use type hints for function signatures
+### 2. [Module Name] (`path/to/file.py`)
+...
 
-**Example / 範例**:
-```python
-def process_user(user_id: int, name: str) -> dict[str, Any]:
-    """Process user data and return result.
-
-    Args:
-        user_id: Unique user identifier
-        name: User's display name
-
-    Returns:
-        Dictionary containing processed user data
-    """
-    return {"id": user_id, "name": name.title()}
-```
-
-### Documentation Style / 文件風格
-
-- Use docstrings for all public functions and classes
-- Follow [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html) for docstrings
-- Include examples for complex functions
-
-## Project Structure / 專案結構
+## Web UI Architecture / 前端架構 (若適用)
+**注意：必須使用 ASCII Art (文字符號) 繪製，嚴禁使用 Mermaid。**
 
 ```
-src/
-├── api/                # API layer / API 層
-│   ├── routes/        # Route handlers / 路由處理器
-│   └── schemas/       # Request/response schemas / 請求回應 schema
-├── services/           # Business logic / 業務邏輯
-├── models/            # Database models / 資料庫模型
-├── repositories/      # Data access layer / 資料存取層
-└── utils/             # Utility functions / 工具函式
-
-tests/
-├── unit/              # Unit tests / 單元測試
-├── integration/       # Integration tests / 整合測試
-└── fixtures/          # Test fixtures / 測試固件
+┌─────────────────────────────┐
+│      React Application      │
+├──────────────┬──────────────┤
+│   Components │    Pages     │
+└──────────────┴──────────────┘
 ```
 
-## Database Migrations / 資料庫遷移
+- **Tech Stack**: React, TanStack Query...
+- **Key Components**:
+  - `JobsList`: 負責顯示任務列表，每 5 秒自動刷新...
 
-```bash
-# Create new migration / 建立新遷移
-uv run alembic revision --autogenerate -m "add users table"
+## Database Schema / 資料庫結構
+(若專案使用資料庫，必須列出核心 Table 及其用途)
+- **Users**: [用途]
+- **Jobs**: [用途]
 
-# Review generated migration file / 檢查生成的遷移檔案
-# Located in: alembic/versions/
+## Job Lifecycle / 任務生命週期
+(若專案包含非同步任務，必須繪製狀態流轉圖，使用 ASCII Art)
+`Queued` -> `Processing` -> `Completed`
 
-# Apply migration / 套用遷移
-uv run alembic upgrade head
+## Directory Structure / 目錄結構
+(列出關鍵檔案並說明用途，需包含 `api/`, `workers/`, `core/` 等重要目錄的詳細樹狀圖)
 
-# Rollback migration / 回滾遷移
-uv run alembic downgrade -1
+```
+Project_Root/
+├── api/                 # API 服務層
+│   ├── server.py        # Flask 入口點
+│   └── routes/          # 路由定義
+├── core/                # 核心邏輯
+│   └── utils.py         # 工具函式
+└── workers/             # 背景工作
+    └── processor.py     # 任務處理邏輯
 ```
 
-## Debugging / 除錯
+## Configuration / 設定說明
+(列出關鍵環境變數與設定檔)
+- `DB_HOST`: 資料庫位址
+- `API_KEY`: 外部服務金鑰
 
-### Using PDB / 使用 PDB
+## Installation / 安裝指南
+...
 
-```python
-# Add breakpoint in code / 在程式碼中加入中斷點
-import pdb; pdb.set_trace()
+## Development & Testing / 開發與測試
+- **Development Setup**: 針對該語言的具體設置步驟 (e.g., `uv sync`, `npm install`, `go mod download`)。
+- **Testing**: 測試指令。
 
-# Or use built-in breakpoint (Python 3.7+)
-breakpoint()
-```
+## API Documentation / API 文件
+(列出主要 Endpoint 分類，並連結到詳細 API 文件)
 
-### Using VS Code Debugger / 使用 VS Code 除錯器
-
-Create `.vscode/launch.json`:
-
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Python: Current File",
-      "type": "python",
-      "request": "launch",
-      "program": "${file}",
-      "console": "integratedTerminal"
-    }
-  ]
-}
-```
-
-## Troubleshooting / 問題排除
-
-### Common Issues / 常見問題
-
-#### Dependencies not installing / 依賴安裝失敗
-```bash
-# Clear uv cache / 清除 uv 快取
-uv cache clean
-
-# Reinstall dependencies / 重新安裝依賴
-rm -rf .venv
-uv venv
-uv sync
-```
-
-#### Database migration errors / 資料庫遷移錯誤
-```bash
-# Reset database / 重置資料庫
-uv run alembic downgrade base
-uv run alembic upgrade head
-```
-
-#### Test failures / 測試失敗
-```bash
-# Run tests with verbose output / 詳細輸出執行測試
-uv run pytest -vv
-
-# Run specific test with debug / 除錯執行特定測試
-uv run pytest tests/test_api.py::test_login -vv -s
-```
-
-## Getting Help / 取得協助
-
-- Check [documentation](docs/) / 查看[文件](docs/)
-- Open an [issue](https://github.com/your-org/your-repo/issues) / 開啟 [issue](https://github.com/your-org/your-repo/issues)
-- Ask in team chat / 在團隊聊天室詢問
-- Email: dev@example.com
-
-## Thank You! / 感謝你的貢獻！
-
-We appreciate your contributions to make this project better!
-
-感謝你為改善專案所做的貢獻！
+## Troubleshooting / 故障排除
+(根據程式碼錯誤處理邏輯產生的常見問題)
+- **Error X**: 可能原因與解法
+- **Error Y**: 可能原因與解法
 ```
 
 ---
 
-## 掃描與分析流程
+## 掃描與分析流程 (執行步驟)
 
-### 步驟 1: 掃描程式碼庫
+### 步驟 1: 專案識別與工具掃描 (Project Identification)
 
-```bash
-# 1. 掃描專案結構
-find . -maxdepth 2 -type d \
-  ! -path "./.venv/*" ! -path "./node_modules/*" ! -path "./.git/*"
+**注意：禁止使用 `run_command` 執行 `find` 或 `grep`，必須使用 Agent 內建工具以確保跨平台相容性與效能。**
 
-# 2. 掃描主要入口檔案
-find . -name "main.py" -o -name "app.py" -o -name "index.js" \
-  ! -path "./.venv/*" ! -path "./node_modules/*"
+請依照以下順序執行工具呼叫：
 
-# 3. 掃描 CLI 指令
-grep -r "argparse\|click\|typer\|@app.command" \
-  --include="*.py" ! -path "./.venv/*"
+1.  **識別專案類型**：
+    - 使用 `list_dir` 查看根目錄。
+    - 檢查關鍵檔案：
+        - **Python**: `pyproject.toml`, `requirements.txt`, `setup.py`
+        - **Node.js**: `package.json`, `tsconfig.json`
+        - **Go**: `go.mod`
+        - **Rust**: `Cargo.toml`
 
-# 4. 掃描功能模組
-find . -path "*/src/*" -o -path "*/lib/*" -o -path "*/app/*" \
-  ! -path "./.venv/*" ! -path "./node_modules/*"
+2.  **尋找核心邏輯 (Core Logic)**：
+    - 使用 `find_by_name` 搜尋關鍵檔案（根據語言調整）：
+        - **Python**: `models.py`, `schemas.py`, `*worker*.py`, `config.py`
+        - **Node.js**: `*.schema.ts`, `*.model.ts`, `*.controller.ts`, `config.ts`
+        - **Go**: `model.go`, `handler.go`, `config.go`
+        - **Rust**: `structs.rs`, `models.rs`, `config.rs`
 
-# 5. 掃描測試檔案
-find . -name "test_*.py" -o -name "*_test.py" -o -path "*/tests/*" \
-  ! -path "./.venv/*"
+3.  **尋找 API 定義 (API Definitions)**：
+    - 使用 `grep_search` 搜尋路由定義：
+        - **Python**: `@app.route`, `@router`, `class .*Resource`
+        - **Node.js (Express/Nest)**: `@Controller`, `router.get`, `app.use`
+        - **Go (Gin/Echo)**: `gin.Default`, `echo.New`, `.GET(`, `.POST(`
+        - **Rust (Actix/Axum)**: `#[get(`, `route(`, `App::new`
 
-# 6. 掃描設定檔案
-find . -name "pyproject.toml" -o -name "package.json" -o -name "setup.py"
+4.  **尋找前端與設定 (Frontend & Config)**：
+    - 使用 `find_by_name` 搜尋 `package.json`, `vite.config.ts`, `tsconfig.json` (Frontend)。
+    - 使用 `find_by_name` 搜尋 `.env.example`, `docker-compose.yml` (Config)。
+    - 使用 `grep_search` 搜尋錯誤處理模式（用於撰寫 Troubleshooting）。
 
-# 7. 掃描現有文件
-find docs/ -name "*.md" 2>/dev/null || echo "docs/ 不存在"
-ls README*.md 2>/dev/null || echo "無 README"
-```
+### 步驟 2: 邏輯分析 (Logic Analysis)
 
-### 步驟 2: 提取資訊
+根據步驟 1 的工具輸出結果，你必須分析：
 
-從掃描結果提取：
-1. **專案名稱** → 從 pyproject.toml、package.json
-2. **主要功能** → 從主要模組、API routes
-3. **CLI 指令** → 從 argparse/click 定義
-4. **專案結構** → 從資料夾層級
-5. **技術堆疊** → 從依賴清單
-6. **開發工具** → 從 dev dependencies、pre-commit
+1.  **核心模組與函式 (Core Modules & Methods)**：
+    - 針對核心檔案，提取關鍵類別 (Class) 與函式 (Function)。
+    - 分析函式內部的邏輯 (e.g., 驗證 -> DB 操作 -> 觸發事件)。
+    - **注意時間邏輯**：搜尋 `sleep`, `interval`, `cron` 等關鍵字，確認 Worker 的執行頻率。
 
-### 步驟 3: 驗證與清理
+2.  **資料庫結構 (Database Schema)**：
+    - 提取 Table/Collection 名稱與關鍵欄位。
+    - 分析 Table 之間的關聯 (1:1, 1:N, M:N)。
 
-1. **比對現有文件**：讀取 `README.md`、`docs/CONTRIBUTING.md`（若存在）
-2. **刪除過時內容**：移除已不存在的模組、指令、功能
-3. **新增遺漏項目**：補充新增的模組、指令
-4. **同步雙語版本**：確保中英文內容一致
+3.  **狀態流轉 (State Transitions)**：
+    - 找出狀態變數 (e.g., `status`, `state`)。
+    - 追蹤狀態變更的邏輯 (e.g., `PENDING` -> `PROCESSING` -> `COMPLETED`)。
+
+4.  **前端架構 (Frontend Architecture)**：
+    - 分析 `package.json` 依賴 (React, Vue, Query Libs)。
+    - 分析 `src/` 目錄結構，識別 Pages, Components, API Client。
+
+5.  **系統架構與資料流 (Architecture & Data Flow)**：
+    - 繪製元件互動圖 (API <-> Service <-> DB <-> Worker)。
+    - 建立 Step-by-Step 的資料流敘述。
+    - 識別外部依賴 (Redis, S3, 3rd Party APIs)。
+
+6.  **設定與環境 (Configuration)**：
+    - 整理所有必要的環境變數 (從 `.env.example` 或 Config 檔)。
+    - 區分「必要設定」與「選用設定」。
+
+### 步驟 3: 撰寫文件 (Documentation Generation)
+
+請根據分析結果，產生以下章節（若適用）：
+
+1.  **README.md**:
+    - **Tech Stack**: 列出前後端技術棧。
+    - **Architecture**: 包含 ASCII Art 架構圖、服務通訊流程與 Data Flow 敘述。
+    - **Core Modules**: 詳細說明每個模組的職責與關鍵函式。
+    - **Web UI**: (若有) 說明前端架構並附上 ASCII Art 架構圖。
+    - **Configuration**: 列出關鍵環境變數。
+    - **Development & Testing**: 包含開發環境設置與測試指令。
+    - **Troubleshooting**: 根據程式碼中的錯誤處理邏輯，列出常見問題與解法。
 
 ---
 
-## 輸出要求
+## 輸出檢查清單
 
-### 禁止事項（README）
-1. **禁止包含伺服器部署**：部署屬於 DEPLOYMENT.md
-2. **禁止包含開發設置**：開發設置屬於 CONTRIBUTING.md
-3. **禁止過度詳細**：README 只需高階概述
-4. **禁止憑空捏造**：所有功能必須來自程式碼
-5. **禁止只追加**：必須刪除過時內容
-
-### 禁止事項（CONTRIBUTING）
-1. **禁止包含生產部署**：生產部署屬於 DEPLOYMENT.md
-2. **禁止包含架構設計**：架構屬於 ARCHITECTURE.md
-3. **禁止分散檔案**：所有內容必須在單一 CONTRIBUTING.md
-4. **禁止只追加**：必須刪除過時內容
-
-### 必須事項
-1. **雙語同步**：同時產生英文和繁體中文版本
-2. **結構一致**：中英文章節編號、標題完全對應
-3. **README 連結文件**：明確連結至 ARCHITECTURE、DEPLOYMENT、CONTRIBUTING
-4. **CONTRIBUTING 只含開發**：只包含本地開發環境設置、測試、程式碼風格
-5. **可執行指令**：所有指令必須可複製貼上執行
-
----
-
-## 互動原則
-
-1. **自動掃描**：優先自動掃描，不要求使用者提供資料
-2. **明確不確定性**：若缺少關鍵資訊，明確說明並提出假設
-3. **高階概述**：README 保持簡潔，詳細內容連結至其他文件
-4. **開發聚焦**：CONTRIBUTING 只關注本地開發，不含生產部署
-5. **雙語對照**：確保中英文術語一致、章節對應
+在輸出文件前，請自我檢查：
+- [ ] 是否包含了 ASCII Art 架構圖 (嚴禁 Mermaid)？
+- [ ] 是否包含了 ASCII Art 服務通訊流程圖？
+- [ ] 是否包含了 ASCII Art 前端架構圖 (若適用)？
+- [ ] 是否詳細說明了核心模組的關鍵函式 (Key Methods)？
+- [ ] 是否分析了前端架構 (若適用)？
+- [ ] 是否詳細說明了資料庫 Schema（如果有的話）？
+- [ ] 是否描述了任務狀態流轉（如果有的話）？
+- [ ] 是否移除了所有 "通用廢話" (e.g., "這是一個強大的系統")，改用具體事實 (e.g., "使用 Redis 作為訊息佇列")？
+- [ ] 是否所有提及的檔案路徑都是正確的？

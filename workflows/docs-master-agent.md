@@ -8,39 +8,35 @@ description: 文件管理協調者 - 依序呼叫所有文件生成 Agent
 
 依序執行以下三個 Agent，每個 Agent 完成後再執行下一個：
 
-### 步驟 1: 產生 README 與 CONTRIBUTING
-
+### 步驟 1: 產生 README
 ```
 呼叫 docs-agent
 ```
 
 **輸出**:
 - `README.md` + `README.zh-TW.md`（專案根目錄）
-- `docs/CONTRIBUTING.md` + `docs/CONTRIBUTING.zh-TW.md`
 
 ---
 
-### 步驟 2: 產生 ARCHITECTURE 文件
-
+### 步驟 2: 產生架構與 API 文件
 ```
 呼叫 docs-diagram-agent
 ```
 
 **輸出**:
-- `docs/ARCHITECTURE.md` + `docs/ARCHITECTURE.zh-TW.md`
-- 包含：系統架構圖、API 文件、資料庫 Schema
+- `docs/system_diagrams.mmd` + `docs/system_diagrams_zh.mmd`
+- `docs/api_reference.md` + `docs/api_reference_zh-TW.md`
+- `docs/database_schema.md` + `docs/database_schema_zh-TW.md`
 
 ---
 
-### 步驟 3: 產生 DEPLOYMENT 文件
-
+### 步驟 3: 產生部署指南
 ```
 呼叫 docs-deployment-agent
 ```
 
 **輸出**:
-- `docs/DEPLOYMENT.md` + `docs/DEPLOYMENT.zh-TW.md`
-- 包含：環境變數、部署步驟、故障排除
+- `docs/DEPLOYMENT_GUIDE.md` + `docs/DEPLOYMENT_GUIDE_zh-TW.md`
 
 ---
 
@@ -53,9 +49,10 @@ description: 文件管理協調者 - 依序呼叫所有文件生成 Agent
 
 已產生文件：
 - README.md + README.zh-TW.md
-- docs/CONTRIBUTING.md + docs/CONTRIBUTING.zh-TW.md
-- docs/ARCHITECTURE.md + docs/ARCHITECTURE.zh-TW.md
-- docs/DEPLOYMENT.md + docs/DEPLOYMENT.zh-TW.md
+- docs/system_diagrams.mmd + _zh.mmd
+- docs/api_reference.md + _zh-TW.md
+- docs/database_schema.md + _zh-TW.md
+- docs/DEPLOYMENT_GUIDE.md + _zh-TW.md
 
-總計：8 個文件
+總計：10 個文件
 ```
