@@ -479,26 +479,16 @@ def sync_global_rules():
             print(f"✗ {editor} 全域規則失敗: {e}")
 
 
-def sync_windsurf_workflows():
-    """同步 workflows 目錄下的所有 .md 到 Windsurf 的 workflows 目標資料夾。
-    - 來源: <repo>/workflows/**/*.md
-    - 目標: macOS/Windows: ~/.codeium/windsurf/workflows/
-            Linux: ~/.codeium/windsurf/global_workflows/
-    - 自動處理 macOS/Windows/Linux（使用 pathlib Path）
-    - 保留子目錄結構，不會刪除目標中多餘檔案
-    """
-    source_dir = Path(__file__).parent / "workflows"
+def _sync_workflows_impl(source_dir: Path, target_root: Path, system_name: str):
+    """實際執行 workflow 同步的內部函式"""
     if not source_dir.exists() or not source_dir.is_dir():
-        print("跳過 Windsurf workflows 同步（來源資料夾不存在）")
+        print(f"跳過 {system_name} workflows 同步（來源資料夾不存在）")
         return
 
-    windsuf_root = Path.home() / ".codeium" / "windsurf"
-    # Windsurf 在所有平台都使用 global_workflows
-    target_root = windsuf_root / "global_workflows"
     try:
         target_root.mkdir(parents=True, exist_ok=True)
     except Exception as e:
-        print(f"✗ 建立 Windsurf workflows 目標目錄失敗: {e}")
+        print(f"✗ 建立 {system_name} workflows 目標目錄失敗: {e}")
         return
 
     agent_to_files, file_to_agents = build_workflow_agent_index(target_root)
@@ -520,12 +510,16 @@ def sync_windsurf_workflows():
                 files_to_remove.update(agent_to_files.get(agent, set()))
 
             for old in files_to_remove:
+                # 避免刪除正要更新的檔案本身（若路徑相同）
+                if old.resolve() == dst.resolve():
+                    continue
+
                 try:
                     if old.exists():
                         old.unlink()
-                        print(f"↻ 移除舊版 workflow (agent 重複): {old}")
+                        print(f"↻ [{system_name}] 移除舊版 workflow (agent 重複): {old}")
                 except Exception as e:
-                    print(f"✗ 無法移除舊 workflow {old}: {e}")
+                    print(f"✗ [{system_name}] 無法移除舊 workflow {old}: {e}")
                     continue
                 for agent in file_to_agents.get(old, set()):
                     files = agent_to_files.get(agent)
@@ -537,10 +531,10 @@ def sync_windsurf_workflows():
 
             # 比對檔案內容
             if files_are_identical(src, dst):
-                print(f"⊜ Windsurf workflow: 內容相同，跳過 {dst}")
+                print(f"⊜ {system_name} workflow: 內容相同，跳過 {dst}")
             else:
                 shutil.copy2(src, dst)
-                print(f"✓ Windsurf workflow: {dst}")
+                print(f"✓ {system_name} workflow: {dst}")
 
             # 更新索引（無論是否更新，都要維護索引）
             if agents:
@@ -550,10 +544,27 @@ def sync_windsurf_workflows():
 
             count += 1
         except Exception as e:
-            print(f"✗ 複製失敗 {src} -> {e}")
+            print(f"✗ [{system_name}] 複製失敗 {src} -> {e}")
 
     if count == 0:
-        print("注意: workflows 來源目錄內未找到任何 .md 檔")
+        print(f"注意: {system_name} workflows 來源目錄內未找到任何 .md 檔")
+
+
+def sync_workflows():
+    """同步 workflows 目錄下的所有 .md 到各系統 (Windsurf, Antigravity) 的目標資料夾。
+    - 來源: <repo>/workflows/**/*.md
+    - 目標 Windsurf: ~/.codeium/windsurf/global_workflows/
+    - 目標 Antigravity: ~/.gemini/antigravity/global_workflows/
+    """
+    source_dir = Path(__file__).parent / "workflows"
+    
+    targets = {
+        "Windsurf": Path.home() / ".codeium/windsurf/global_workflows",
+        "Antigravity": Path.home() / ".gemini/antigravity/global_workflows"
+    }
+
+    for system_name, target_root in targets.items():
+        _sync_workflows_impl(source_dir, target_root, system_name)
 
 
 def main():
@@ -580,8 +591,8 @@ def main():
         # 4. 同步全域規則
         sync_global_rules()
 
-        # 4.1 同步 Windsurf workflows (.md)
-        sync_windsurf_workflows()
+        # 4.1 同步 Workflows (Windsurf & Antigravity)
+        sync_workflows()
 
         print(f"\n同步完成！成功: {success_count}/3 個目標")
 
