@@ -181,7 +181,8 @@ def sync_to_editors(config_data: dict, temp_path: Path):
     # 目標路徑配置
     targets = {
         "Windsurf": home / ".codeium/windsurf/mcp_config.json",
-        "Cursor": home / ".cursor/mcp.json"
+        "Cursor": home / ".cursor/mcp.json",
+        "Antigravity": home / ".gemini/antigravity/mcp_config.json"
     }
 
     success_count = 0
@@ -462,7 +463,8 @@ def sync_global_rules():
     targets = {
         "Cursor": Path.home() / ".cursor/AGENTS.md",
         "Windsurf": Path.home() / ".codeium/windsurf/memories/global_rules.md",
-        "Claude": Path.home() / ".claude/CLAUDE.md"
+        "Claude": Path.home() / ".claude/CLAUDE.md",
+        "Antigravity": Path.home() / ".gemini/GEMINI.md"
     }
 
     for editor, target in targets.items():
