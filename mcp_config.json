@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "Notion": {
-      "url": "https://mcp.notion.com/mcp",
+      "serverUrl": "https://mcp.notion.com/mcp",
       "disabled": true
+    },
+    "Heptabase": {
+      "serverUrl": "https://api.heptabase.com/mcp"
     },
     "context7": {
       "serverUrl": "https://mcp.context7.com/mcp",
@@ -44,7 +47,10 @@
     },
     "firecrawl-mcp": {
       "command": "npx",
-      "args": ["-y", "firecrawl-mcp"],
+      "args": [
+        "-y",
+        "firecrawl-mcp"
+      ],
       "env": {
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
       }
