@@ -4,8 +4,25 @@
       "serverUrl": "https://mcp.notion.com/mcp",
       "disabled": true
     },
-    "Heptabase": {
-      "serverUrl": "https://api.heptabase.com/mcp"
+    "heptabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/claude-mcp-heptabase"
+      ],
+      "env": {
+        "HEPTABASE_BACKUP_PATH": "${HEPTABASE_BACKUP_PATH}",
+        "HEPTABASE_AUTO_EXTRACT": "true",
+        "HEPTABASE_WATCH_DIRECTORY": "true"
+      }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest"
+      ],
+      "env": {}
     },
     "context7": {
       "serverUrl": "https://mcp.context7.com/mcp",
