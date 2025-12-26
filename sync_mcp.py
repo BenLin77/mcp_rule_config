@@ -588,16 +588,183 @@ def show_menu() -> str:
 │                    請選擇要執行的操作                        │
 ├─────────────────────────────────────────────────────────────┤
 │  [1] 🔄 同步全部 (MCP + 規則 + Workflows)                   │
-│  [2] 📦 只同步 MCP 配置                                      │
-│  [3] 📋 只同步全域規則 (global_rules.md)                    │
-│  [4] 🤖 只同步 Workflows                                     │
-│  [5] 🧹 清理所有 Claude CLI MCP                             │
-│  [6] 📊 顯示 Claude CLI MCP 狀態                            │
+│  [2] 📦 同步所有 MCP 配置                                    │
+│  [3] 📦 選擇性同步 MCP (可選擇個別 MCP)                      │
+│  [4] 📋 只同步全域規則 (global_rules.md)                    │
+│  [5] 🤖 只同步 Workflows                                     │
+│  [6] 🧹 清理所有 Claude CLI MCP                             │
+│  [7] 📊 顯示 Claude CLI MCP 狀態                            │
 │  [0] ❌ 離開                                                 │
 └─────────────────────────────────────────────────────────────┘
 """
     print(menu)
-    return input("請輸入選項 [0-6]: ").strip()
+    return input("請輸入選項 [0-7]: ").strip()
+
+
+def show_mcp_selection_menu(config: dict) -> List[str]:
+    """顯示 MCP 選擇選單，讓使用者選擇要同步的 MCP
+    
+    Returns:
+        List[str]: 選中的 MCP 名稱列表
+    """
+    servers = config.get('mcpServers', {})
+    server_list = list(servers.keys())
+    
+    if not server_list:
+        print("⚠ 未找到任何 MCP 伺服器配置")
+        return []
+    
+    # 初始化選擇狀態 (預設全選)
+    selected = {name: True for name in server_list}
+    
+    while True:
+        print("\n┌─────────────────────────────────────────────────────────────┐")
+        print("│           選擇要同步的 MCP 伺服器 (輸入編號切換)            │")
+        print("├─────────────────────────────────────────────────────────────┤")
+        
+        for i, name in enumerate(server_list, 1):
+            server = servers[name]
+            status = "✓" if selected[name] else "○"
+            disabled = " (已停用)" if server.get('disabled', False) else ""
+            
+            # 顯示伺服器類型
+            if 'serverUrl' in server:
+                stype = "HTTP"
+            elif 'command' in server:
+                stype = server.get('command', 'cmd')
+            else:
+                stype = "?"
+            
+            print(f"│  [{i:2}] {status} {name:<25} ({stype}){disabled:<10} │")
+        
+        print("├─────────────────────────────────────────────────────────────┤")
+        print("│  [a] 全選    [n] 全不選    [c] 確認並同步    [q] 取消       │")
+        print("└─────────────────────────────────────────────────────────────┘")
+        
+        choice = input("\n請輸入選項: ").strip().lower()
+        
+        if choice == 'q':
+            return []
+        
+        elif choice == 'c':
+            # 確認並返回選中的 MCP
+            return [name for name, is_selected in selected.items() if is_selected]
+        
+        elif choice == 'a':
+            # 全選
+            for name in server_list:
+                selected[name] = True
+            print("✓ 已全選所有 MCP")
+        
+        elif choice == 'n':
+            # 全不選
+            for name in server_list:
+                selected[name] = False
+            print("○ 已取消選擇所有 MCP")
+        
+        elif choice.isdigit():
+            idx = int(choice)
+            if 1 <= idx <= len(server_list):
+                name = server_list[idx - 1]
+                selected[name] = not selected[name]
+                status = "✓ 已選擇" if selected[name] else "○ 已取消"
+                print(f"{status}: {name}")
+            else:
+                print("⚠ 無效的編號")
+        
+        else:
+            print("⚠ 無效的輸入")
+
+
+def filter_config_by_selection(config: dict, selected_mcps: List[str]) -> dict:
+    """根據選擇的 MCP 過濾配置
+    
+    Args:
+        config: 原始配置
+        selected_mcps: 選中的 MCP 名稱列表
+    
+    Returns:
+        dict: 過濾後的配置
+    """
+    filtered_servers = {}
+    for name, server in config.get('mcpServers', {}).items():
+        if name in selected_mcps:
+            filtered_servers[name] = server
+    
+    return {'mcpServers': filtered_servers}
+
+
+def run_selective_sync_mcp(config: dict, temp_path: Path) -> int:
+    """執行選擇性 MCP 同步"""
+    print("\n📦 選擇性同步 MCP 配置...")
+    
+    # 顯示選擇選單
+    selected_mcps = show_mcp_selection_menu(config)
+    
+    if not selected_mcps:
+        print("未選擇任何 MCP，取消同步")
+        return 0
+    
+    print(f"\n已選擇 {len(selected_mcps)} 個 MCP: {', '.join(selected_mcps)}")
+    
+    # 過濾配置
+    filtered_config = filter_config_by_selection(config, selected_mcps)
+    
+    # 創建臨時配置檔案
+    import json
+    filtered_temp = temp_path.parent / f"filtered_{temp_path.name}"
+    try:
+        with open(filtered_temp, 'w', encoding='utf-8') as f:
+            json.dump(filtered_config, f, indent=2)
+        
+        # 同步到編輯器
+        success_count = sync_to_editors(filtered_config, filtered_temp)
+        
+        # 同步到 Claude CLI (只同步選中的)
+        print(f"\n正在同步選中的 MCP 到 Claude CLI...")
+        for name in selected_mcps:
+            server_config = config.get('mcpServers', {}).get(name, {})
+            if server_config.get('disabled', False):
+                print(f"⊜ 跳過已停用: {name}")
+                continue
+            
+            try:
+                cmd = ['claude', 'mcp', 'add', '--scope', 'user']
+                
+                server_url = server_config.get('serverUrl') or server_config.get('url')
+                if server_url:
+                    cmd.extend(['--transport', 'http', name, server_url])
+                    headers = server_config.get('headers') or {}
+                    if isinstance(headers, dict):
+                        for k, v in headers.items():
+                            cmd.extend(['--header', f"{k}: {v}"])
+                else:
+                    command = server_config.get('command')
+                    args = server_config.get('args', []) or []
+                    if command:
+                        cmd.extend([name, "--", command])
+                        for arg in args:
+                            if arg != '-y':
+                                cmd.append(arg)
+                    else:
+                        print(f"⚠ {name}: 無效的配置")
+                        continue
+                
+                result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+                if result.returncode == 0:
+                    print(f"✓ Claude CLI 已添加: {name}")
+                elif "already exists" in str(result.stderr):
+                    print(f"⊜ Claude CLI 已存在: {name}")
+                else:
+                    print(f"✗ Claude CLI 失敗: {name} - {result.stderr}")
+            except Exception as e:
+                print(f"✗ Claude CLI 錯誤: {name} - {e}")
+        
+        return success_count
+        
+    finally:
+        if filtered_temp.exists():
+            filtered_temp.unlink()
 
 
 def run_sync_mcp(config: dict, temp_path: Path) -> int:
@@ -673,7 +840,7 @@ def interactive_mode():
                 print("\n✅ 全部同步完成！")
             
             elif choice == '2':
-                # 只同步 MCP
+                # 同步所有 MCP
                 if config is None:
                     config, temp_path = process_config()
                     print("✓ 配置檔案處理完成")
@@ -682,20 +849,30 @@ def interactive_mode():
                 print(f"\n✅ MCP 同步完成！成功: {success}/4 個目標")
             
             elif choice == '3':
+                # 選擇性同步 MCP
+                if config is None:
+                    config, temp_path = process_config()
+                    print("✓ 配置檔案處理完成")
+                
+                success = run_selective_sync_mcp(config, temp_path)
+                if success > 0:
+                    print(f"\n✅ 選擇性 MCP 同步完成！成功: {success}/4 個目標")
+            
+            elif choice == '4':
                 # 只同步規則
                 run_sync_rules()
                 print("\n✅ 全域規則同步完成！")
             
-            elif choice == '4':
+            elif choice == '5':
                 # 只同步 Workflows
                 run_sync_workflows()
                 print("\n✅ Workflows 同步完成！")
             
-            elif choice == '5':
+            elif choice == '6':
                 # 清理 Claude MCP
                 run_clean_claude_mcps()
             
-            elif choice == '6':
+            elif choice == '7':
                 # 顯示狀態
                 run_show_claude_status()
             
