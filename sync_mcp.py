@@ -569,8 +569,150 @@ def sync_workflows():
         _sync_workflows_impl(source_dir, target_root, system_name)
 
 
-def main():
-    """主要執行流程"""
+def print_banner():
+    """印出程式標題"""
+    banner = """
+╔═══════════════════════════════════════════════════════════════════╗
+║              🔄 MCP 配置同步工具 - 互動式選單                     ║
+║━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━║
+║  同步目標: Windsurf | Cursor | Antigravity | Claude Code         ║
+╚═══════════════════════════════════════════════════════════════════╝
+"""
+    print(banner)
+
+
+def show_menu() -> str:
+    """顯示互動式選單並取得使用者選擇"""
+    menu = """
+┌─────────────────────────────────────────────────────────────┐
+│                    請選擇要執行的操作                        │
+├─────────────────────────────────────────────────────────────┤
+│  [1] 🔄 同步全部 (MCP + 規則 + Workflows)                   │
+│  [2] 📦 只同步 MCP 配置                                      │
+│  [3] 📋 只同步全域規則 (global_rules.md)                    │
+│  [4] 🤖 只同步 Workflows                                     │
+│  [5] 🧹 清理所有 Claude CLI MCP                             │
+│  [6] 📊 顯示 Claude CLI MCP 狀態                            │
+│  [0] ❌ 離開                                                 │
+└─────────────────────────────────────────────────────────────┘
+"""
+    print(menu)
+    return input("請輸入選項 [0-6]: ").strip()
+
+
+def run_sync_mcp(config: dict, temp_path: Path) -> int:
+    """執行 MCP 配置同步"""
+    print("\n📦 同步 MCP 配置...")
+    success_count = sync_to_editors(config, temp_path)
+    
+    # 清理多餘 MCP
+    try:
+        removed = prune_claude_cli(config)
+        if removed:
+            print(f"已清理多餘 MCP: {', '.join(removed)}")
+    except Exception as e:
+        print(f"清理多餘 MCP 時發生錯誤: {e}")
+    
+    return success_count
+
+
+def run_sync_rules():
+    """執行全域規則同步"""
+    print("\n📋 同步全域規則...")
+    sync_global_rules()
+
+
+def run_sync_workflows():
+    """執行 Workflows 同步"""
+    print("\n🤖 同步 Workflows...")
+    sync_workflows()
+
+
+def run_show_claude_status():
+    """顯示 Claude CLI MCP 狀態"""
+    print("\n📊 目前 Claude CLI MCP 伺服器:")
+    subprocess.run(['claude', 'mcp', 'list'], check=False)
+
+
+def run_clean_claude_mcps():
+    """清理所有 Claude CLI MCP"""
+    print("\n🧹 清理所有 Claude CLI MCP...")
+    confirm = input("確定要清理所有 Claude CLI MCP 嗎？(y/N): ").strip().lower()
+    if confirm == 'y':
+        removed = remove_all_claude_cli_mcps()
+        print(f"\n已清理 {len(removed)} 個 MCP")
+    else:
+        print("已取消清理操作")
+
+
+def interactive_mode():
+    """互動式選單模式"""
+    print_banner()
+    
+    temp_path = None
+    config = None
+    
+    try:
+        while True:
+            choice = show_menu()
+            
+            if choice == '0':
+                print("\n👋 再見！")
+                break
+            
+            elif choice == '1':
+                # 同步全部
+                if config is None:
+                    config, temp_path = process_config()
+                    print("✓ 配置檔案處理完成")
+                
+                run_sync_mcp(config, temp_path)
+                run_sync_rules()
+                run_sync_workflows()
+                run_show_claude_status()
+                print("\n✅ 全部同步完成！")
+            
+            elif choice == '2':
+                # 只同步 MCP
+                if config is None:
+                    config, temp_path = process_config()
+                    print("✓ 配置檔案處理完成")
+                
+                success = run_sync_mcp(config, temp_path)
+                print(f"\n✅ MCP 同步完成！成功: {success}/4 個目標")
+            
+            elif choice == '3':
+                # 只同步規則
+                run_sync_rules()
+                print("\n✅ 全域規則同步完成！")
+            
+            elif choice == '4':
+                # 只同步 Workflows
+                run_sync_workflows()
+                print("\n✅ Workflows 同步完成！")
+            
+            elif choice == '5':
+                # 清理 Claude MCP
+                run_clean_claude_mcps()
+            
+            elif choice == '6':
+                # 顯示狀態
+                run_show_claude_status()
+            
+            else:
+                print("\n⚠ 無效選項，請重新輸入")
+            
+            input("\n按 Enter 繼續...")
+    
+    except KeyboardInterrupt:
+        print("\n\n使用者中斷執行")
+    finally:
+        if temp_path and temp_path.exists():
+            temp_path.unlink()
+
+
+def batch_mode():
+    """批次模式 (原本的 main 流程)"""
     temp_path = None
     try:
         print("開始同步 MCP 配置...")
@@ -596,7 +738,7 @@ def main():
         # 4.1 同步 Workflows (Windsurf & Antigravity)
         sync_workflows()
 
-        print(f"\n同步完成！成功: {success_count}/3 個目標")
+        print(f"\n同步完成！成功: {success_count}/4 個目標")
 
         # 5. 顯示 Claude CLI 狀態
         print("\n目前 Claude CLI MCP 伺服器:")
@@ -613,6 +755,82 @@ def main():
         if temp_path and temp_path.exists():
             temp_path.unlink()
             print(f"已刪除臨時檔案: {temp_path}")
+
+
+def main():
+    """主程式入口：支援互動式選單或批次模式"""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description='🔄 MCP 配置同步工具',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+範例:
+  # 互動式選單模式
+  python sync_mcp.py
+  
+  # 批次模式 (一次同步全部)
+  python sync_mcp.py --batch
+  python sync_mcp.py -b
+  
+  # 只同步特定項目
+  python sync_mcp.py --mcp        # 只同步 MCP 配置
+  python sync_mcp.py --rules      # 只同步全域規則
+  python sync_mcp.py --workflows  # 只同步 Workflows
+        """
+    )
+    
+    parser.add_argument(
+        '--batch', '-b',
+        action='store_true',
+        help='批次模式：一次同步全部 (不顯示選單)'
+    )
+    
+    parser.add_argument(
+        '--mcp',
+        action='store_true',
+        help='只同步 MCP 配置'
+    )
+    
+    parser.add_argument(
+        '--rules',
+        action='store_true',
+        help='只同步全域規則'
+    )
+    
+    parser.add_argument(
+        '--workflows',
+        action='store_true',
+        help='只同步 Workflows'
+    )
+    
+    args = parser.parse_args()
+    
+    # 判斷執行模式
+    if args.batch:
+        batch_mode()
+    elif args.mcp or args.rules or args.workflows:
+        # 部分同步模式
+        temp_path = None
+        try:
+            if args.mcp:
+                config, temp_path = process_config()
+                print("✓ 配置檔案處理完成")
+                run_sync_mcp(config, temp_path)
+            
+            if args.rules:
+                run_sync_rules()
+            
+            if args.workflows:
+                run_sync_workflows()
+            
+            print("\n✅ 同步完成！")
+        finally:
+            if temp_path and temp_path.exists():
+                temp_path.unlink()
+    else:
+        # 預設進入互動式選單
+        interactive_mode()
 
 
 if __name__ == "__main__":
