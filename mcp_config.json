@@ -5,16 +5,8 @@
       "disabled": true
     },
     "heptabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@anthropic-ai/claude-mcp-heptabase"
-      ],
-      "env": {
-        "HEPTABASE_BACKUP_PATH": "${HEPTABASE_BACKUP_PATH}",
-        "HEPTABASE_AUTO_EXTRACT": "true",
-        "HEPTABASE_WATCH_DIRECTORY": "true"
-      }
+      "serverUrl": "https://api.heptabase.com/mcp",
+      "disabled": true
     },
     "chrome-devtools": {
       "command": "npx",
@@ -38,7 +30,8 @@
       ],
       "env": {
         "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
-      }
+      },
+      "disabled": true
     },
     "git": {
       "command": "uvx",
@@ -70,19 +63,6 @@
       ],
       "env": {
         "FIRECRAWL_API_KEY": "${FIRECRAWL_API_KEY}"
-      }
-    },
-    "n8n-mcp": {
-      "command": "npx",
-      "args": [
-        "n8n-mcp"
-      ],
-      "env": {
-        "MCP_MODE": "stdio",
-        "LOG_LEVEL": "error",
-        "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "https://benlin77.zeabur.app",
-        "N8N_API_KEY": "${N8N_API_KEY}"
       }
     }
   }
