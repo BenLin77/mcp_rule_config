@@ -9,16 +9,24 @@ useDefault = true
 regexes = [
   '''\$\{[A-Z0-9_]+\}''',
   '''your_(api|token|password|secret)_?key?''',
-  '''REDACTED'''
+  '''REDACTED''',
+  '''sk-live-abc123\.\.\.''',
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.\.\.''',
+  '''admin123''',
+  '''hardcoded-secret''',
+  '''example\.com''',
+  '''abc123'''
 ]
 
 # Reduce false positives in common non-secret files and folders
 paths = [
-  '^README\\.md$',
-  '^global_rules\\.md$',
-  '^node_modules/.*',
-  '^\\.venv/.*',
-  '^__pycache__/.*',
-  '^dist/.*',
-  '^build/.*'
+  '''^README\.md$''',
+  '''^global_rules\.md$''',
+  '''^workflows/.*\.md$''',
+  '''^docs/.*\.md$''',
+  '''^node_modules/.*''',
+  '''^\.venv/.*''',
+  '''^__pycache__/.*''',
+  '''^dist/.*''',
+  '''^build/.*'''
 ]
